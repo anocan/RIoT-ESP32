@@ -1,19 +1,18 @@
-#include "RiotSystem.h"
 #include "Network.h"
-#include "RiotFirebase.h"
-#include "RFID.h"
 #include "Pins.h"
+#include "RFID.h"
+#include "RiotFirebase.h"
+#include "RiotSystem.h"
 
 void setup() {
-    attachInterrupt(INTERRUPT_PIN, backUpRead, RISING);
-    Serial.begin(monitor_speed);
-    initWiFi();
-    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-    initFirebase();
-    initRFID();
+  attachInterrupt(INTERRUPT_PIN, backUpRead, RISING);
+  Serial.begin(MONITOR_SPEED);
+  initWiFi();
+  initFirebase();
+  initRFID();
 }
 
 void loop() {
-    systemMaintenance();
-    doorController(readRFID());
+  systemMaintenance();
+  doorController(readRFID());
 }

@@ -1,4 +1,4 @@
-#ifndef PIN_NUMBERS_H 
+#ifndef PIN_NUMBERS_H
 #define PIN_NUMBERS_H
 
 // DEBUG
@@ -8,12 +8,10 @@
 
 // RFID
 #define RST_PIN 5
-#define SS_PIN 21
+#define SS_PIN 21 // SDA
 
 // RIoT System
 #define INTERRUPT_PIN 26
-
-#define monitor_speed 115200
-
+#define MONITOR_SPEED 115200
 
 #endif
