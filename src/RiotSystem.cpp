@@ -10,10 +10,10 @@ const char* ntpServer = "pool.ntp.org";
 const long  gmtOffset_sec = 3*3600; // +3 UTC in seconds
 const int   daylightOffset_sec = 0;
 
-const int maintenanceLowerHour = 21;
+const int maintenanceLowerHour = 04;
 const int maintenanceLowerMinute = 00;
 
-const int maintenanceUpperHour = 21;
+const int maintenanceUpperHour = 04;
 const int maintenanceUpperMinute = 59;
 
 bool taskExecuted = false;
@@ -79,7 +79,7 @@ void doorController(String tagUID) {
               firestoreGetJson(&jsonObjectDoor, "labData/lab-data");
              
 
-             String dataDoor = getDataFromJsonObject(jsonObjectDoor,
+             String dataDoor = getDataFromJsonObject(&jsonObjectDoor,
              "fields/labDoor/stringValue"
              );
 
@@ -87,13 +87,13 @@ void doorController(String tagUID) {
             if (dataDoor == "locked") {
 
 
-                String jsonDataRiotCardStatus = getDataFromJsonObject(jsonObjectRiotCard, 
+                String jsonDataRiotCardStatus = getDataFromJsonObject(&jsonObjectRiotCard, 
                 "fields/riotCardStatus/stringValue");
                 //Serial.println(jsonDataRiotCardStatus);
                 
                 if (jsonDataRiotCardStatus == "active") {
                   releaseDoor();
-                  uploadAllFirestoreTasks(jsonObjectRiotCard, tagUID.c_str());
+                  uploadAllFirestoreTasks(&jsonObjectRiotCard, tagUID.c_str());
                     
                 } else if (jsonDataRiotCardStatus == "inactive") {
                   Serial.println("Card is inactive."); // DEBUG
@@ -105,7 +105,7 @@ void doorController(String tagUID) {
                 releaseDoor();
                 Serial.println("RIoT door is already unlocked.");
             } else if (dataDoor == "secured") {
-                String userType = getDataFromJsonObject(jsonObjectRiotCard, "fields/userType/stringValue");
+                String userType = getDataFromJsonObject(&jsonObjectRiotCard, "fields/userType/stringValue");
                 if (userType == "admin" || userType == "superadmin") {
                     releaseDoor();
                     Serial.println("vvvv");
@@ -145,8 +145,12 @@ void systemMaintenance(){
   if (timeinfo.tm_hour == maintenanceLowerHour && timeinfo.tm_min >= maintenanceLowerMinute && timeinfo.tm_hour == maintenanceUpperHour && timeinfo.tm_min <= maintenanceUpperMinute) {
     if (!taskExecuted) {
       Serial.println("SYSTEM MAINTENANCE!");
-      //changeRiotCardStatus();
+      updateRiotCardStatus();
+      Serial.println("33% ---------- RIoT Card status are updated.");
       resetInOrOutStatus();
+      Serial.println("67% ---------- InOrOut status are updated.");
+      updateNumberOfPeople();
+      Serial.println("100% ---------- Number of people in the lab is updated.");
       taskExecuted = true;
     }
   } else {
