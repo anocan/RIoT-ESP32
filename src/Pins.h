@@ -13,5 +13,6 @@
 // RIoT System
 #define INTERRUPT_PIN 26
 #define MONITOR_SPEED 115200
+#define BUZZER_PIN 27
 
 #endif

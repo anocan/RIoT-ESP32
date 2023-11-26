@@ -13,7 +13,6 @@ int wifiTimerThreshold = 2 * 60 * 1000; // 2 minutes in milliseconds
 
 bool initWiFi() {
   int wifiTimer = 0;
-  pinMode(NETWORK_PIN, OUTPUT);
   digitalWrite(NETWORK_PIN, HIGH);
   WiFi.disconnect();
   WiFi.mode(WIFI_STA); // Optional

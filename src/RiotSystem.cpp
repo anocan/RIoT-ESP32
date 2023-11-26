@@ -5,16 +5,16 @@
 #include "RiotFirebase.h"
 
 SYSTEM_STATUS SYSTEM = SYS_NORMAL;
-
+int buzzerWrongDuration = 0.55 * 1000; // in seconds
 const char *ntpServer = "pool.ntp.org";
 const long gmtOffset_sec = 3 * 3600; // +3 UTC in seconds
 const int daylightOffset_sec = 0;
 
-const int maintenanceLowerHour = 04;
+const int maintenanceLowerHour = 05;
 const int maintenanceLowerMinute = 00;
 
-const int maintenanceUpperHour = 04;
-const int maintenanceUpperMinute = 59;
+const int maintenanceUpperHour = 05;
+const int maintenanceUpperMinute = 30;
 
 bool taskExecuted = false;
 
@@ -40,6 +40,14 @@ DOOR_STATUS hashit(String string) {
   else
     return DOOR_DEFAULT;
 }
+void setUpPins() {
+  Serial.begin(MONITOR_SPEED);
+  attachInterrupt(INTERRUPT_PIN, backUpRead, RISING);
+  pinMode(NETWORK_PIN, OUTPUT);
+  pinMode(FIREBASE_PIN, OUTPUT);
+  pinMode(READY_PIN, OUTPUT);
+  pinMode(BUZZER_PIN, OUTPUT);
+}
 
 void IRAM_ATTR backUpRead() {
   startTimer = true;
@@ -54,9 +62,6 @@ void IRAM_ATTR backUpRead() {
   }
 
   if (startTimer) {
-    pinMode(NETWORK_PIN, OUTPUT);
-    pinMode(FIREBASE_PIN, OUTPUT);
-    pinMode(READY_PIN, OUTPUT);
     Serial.println("\nBACKUP RFID READ ACTIVATED!");
     lastTrigger = micros();
     startTimer = false;
@@ -67,7 +72,22 @@ void IRAM_ATTR backUpRead() {
   }
 }
 
-void releaseDoor() { Serial.println("Door has been unlocked!"); }
+void beep(int duration) {
+  digitalWrite(BUZZER_PIN, HIGH);
+  delay(duration);
+  digitalWrite(BUZZER_PIN, LOW);
+}
+
+void releaseDoor() {
+  digitalWrite(READY_PIN, LOW);
+  beep(200);
+  digitalWrite(READY_PIN, HIGH);
+  Serial.println("Door has been unlocked!"); // ACTUAL RELEASE
+  if (SYSTEM != SYS_NORMAL) {
+    SYSTEM = SYS_NORMAL;
+    ESP.restart();
+  }
+}
 
 void doorController(String tagUID) {
   if (SYSTEM == SYS_NORMAL) {
@@ -95,8 +115,15 @@ void doorController(String tagUID) {
         releaseDoor();
         uploadAllFirestoreTasks(&jsonObjectRiotCard, tagUID.c_str());
       } else if (jsonDataRiotCardStatus == "inactive") {
+        digitalWrite(NETWORK_PIN, HIGH);
+        beep(buzzerWrongDuration);
+        digitalWrite(NETWORK_PIN, LOW);
+
         Serial.println("Card is inactive."); // DEBUG
       } else if (jsonDataRiotCardStatus == "disabled") {
+        digitalWrite(FIREBASE_PIN, HIGH);
+        beep(buzzerWrongDuration);
+        digitalWrite(FIREBASE_PIN, LOW);
         Serial.println("Card is disabled by the admin."); // DEBUG
       }
       break;
@@ -115,6 +142,11 @@ void doorController(String tagUID) {
         releaseDoor();
         Serial.println("Admin pass.");
       } else {
+        digitalWrite(NETWORK_PIN, HIGH);
+        digitalWrite(FIREBASE_PIN, HIGH);
+        beep(buzzerWrongDuration);
+        digitalWrite(NETWORK_PIN, LOW);
+        digitalWrite(FIREBASE_PIN, LOW);
         Serial.println("Unauthorized access.");
       }
       break;
@@ -128,6 +160,8 @@ void doorController(String tagUID) {
     for (int i = 0; i < numKnownTags; i++) {
       if (tagUID == knownTagUIDs[i]) {
         // Match found
+        digitalWrite(NETWORK_PIN, LOW);
+        digitalWrite(FIREBASE_PIN, LOW);
         releaseDoor();
         Serial.println("CARD READ VIA BACKUP");
         break;

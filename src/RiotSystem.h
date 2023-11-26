@@ -30,6 +30,14 @@ extern const int maintenanceUpperMinute;
 
 /**
  *
+ * @brief Set ups the pins, attaches the interrupt and starts the Serial.
+ * @return None.
+ *
+ */
+void setUpPins();
+
+/**
+ *
  * @brief Backup read (interrupt) if RIoT cannot connect to the Network,
  * Firebase, or unknown discrepency happens.
  * @return None.

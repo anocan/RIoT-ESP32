@@ -11,7 +11,6 @@ bool initRFID() {
   SPI.begin();
   mfrc522.PCD_Init();
   if (SYSTEM == SYS_NORMAL) {
-    pinMode(READY_PIN, OUTPUT);
     digitalWrite(READY_PIN, HIGH);
   }
   return true;

@@ -5,8 +5,7 @@
 #include "RiotSystem.h"
 
 void setup() {
-  attachInterrupt(INTERRUPT_PIN, backUpRead, RISING);
-  Serial.begin(MONITOR_SPEED);
+  setUpPins();
   initWiFi();
   initFirebase();
   initRFID();
