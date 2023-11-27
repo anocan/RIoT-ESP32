@@ -8,15 +8,15 @@ bool RIoTFirebase::initFirebase() {
   Firebase.reconnectNetwork(true);
   Firebase.begin(&config, &auth);
   while (!Firebase.ready()) {
-    if (RIoTSystem::getInstance()->SYSTEM == RIoTSystem::SYS_NORMAL) {
+    if (RIoTSystem::getInstance().SYSTEM == RIoTSystem::SYS_NORMAL) {
       Serial.print("-");
       delay(100);
-    } else if (RIoTSystem::getInstance()->SYSTEM == RIoTSystem::SYS_BACKUP) {
+    } else if (RIoTSystem::getInstance().SYSTEM == RIoTSystem::SYS_BACKUP) {
       Serial.print("!");
       return false;
     }
   }
-  if (RIoTSystem::getInstance()->SYSTEM == RIoTSystem::SYS_NORMAL) {
+  if (RIoTSystem::getInstance().SYSTEM == RIoTSystem::SYS_NORMAL) {
     digitalWrite(FIREBASE_PIN, LOW);
   }
 
@@ -131,6 +131,7 @@ void RIoTFirebase::compareAndUpdateRiotCard(const char *riotCardID,
   }
 
   else if (userType == comparisonValue) {
+    Serial.println("V");
     jsonRiotCard.set("fields/riotCardStatus/stringValue", "inactive");
     riotFirebase.firestoreUpdateField(&jsonRiotCard, documentPath,
                                       "fields/riotCardStatus/stringValue",
@@ -142,6 +143,7 @@ String RIoTFirebase::firebaseJsonIterator(
     FirebaseJson *jsonObject, String pathToArray, const char *updateField,
     const char *funcValue,
     void (*func)(const char *, const char *, int *) = nullptr) {
+  Serial.println("F");
   int count = 0;
   const char *info = nullptr; // I leave it to your imagination
 
@@ -151,7 +153,6 @@ String RIoTFirebase::firebaseJsonIterator(
   jsonObject->get(jsonData, pathToArray);
   jsonData.getArray(jsonArray);
   char tagstr[128];
-
   for (size_t i = 0; i < jsonArray.size(); i++) {
     sprintf(tagstr, "/[%d]/fields/%s/stringValue", i, updateField);
     jsonArray.get(arrayValue, tagstr);
@@ -172,7 +173,7 @@ String RIoTFirebase::firebaseJsonIterator(
 
 String RIoTFirebase::getNoOfPeople() {
   int count = 0;
-  int pageSize = 10;
+  int pageSize = 20;
   bool firstPage = true;
   FirebaseJson riotCardsList;
   FirebaseJsonData nextPageToken;
@@ -242,19 +243,17 @@ bool RIoTFirebase::uploadAllFirestoreTasks(FirebaseJson *jsonObjectRiotCard,
 }
 
 void RIoTFirebase::updateRiotCardStatus() {
-  int pageSize = 20;
+  int pageSize = 5;
   bool firstPage = true;
   FirebaseJson riotCardsList;
   FirebaseJsonData nextPageToken;
   const char *path = "riotCards/";
-
   while (riotCardsList.get(nextPageToken, "nextPageToken") || firstPage) {
     if (!firstPage) {
       Firebase.Firestore.listDocuments(&fbdo, FIREBASE_PROJECT_ID, "", path,
                                        pageSize, nextPageToken.stringValue, "",
                                        "riotCardID", false);
       riotCardsList.setJsonData(fbdo.payload().c_str());
-
       firebaseJsonIterator(&riotCardsList, "documents/", "riotCardID",
                            "deleted", &compareAndUpdateRiotCard);
 

@@ -10,7 +10,7 @@ MFRC522 mfrc522(SS_PIN, RST_PIN);
 bool RIoTRFID::initRFID() {
   SPI.begin();
   mfrc522.PCD_Init();
-  if (RIoTSystem::getInstance()->SYSTEM == RIoTSystem::SYS_NORMAL) {
+  if (RIoTSystem::getInstance().SYSTEM == RIoTSystem::SYS_NORMAL) {
     digitalWrite(READY_PIN, HIGH);
   }
   return true;

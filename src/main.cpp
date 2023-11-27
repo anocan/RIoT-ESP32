@@ -6,8 +6,8 @@
 
 RIoTNetwork riotNetwork;
 RIoTFirebase riotFirebase;
-RIoTSystem riotSystem;
 RIoTRFID riotRfid;
+RIoTSystem &riotSystem = RIoTSystem::getInstance();
 
 void setup() {
   riotSystem.setUpPins();
@@ -17,6 +17,6 @@ void setup() {
 }
 
 void loop() {
-  riotSystem.systemMaintenance();
+  // riotSystem.systemMaintenance();
   riotSystem.doorController(riotRfid.readRFID());
 }

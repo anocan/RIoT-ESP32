@@ -16,6 +16,10 @@ const char *correspondingIDs[] = {
     "ZGwWrS4bjrZPXa8V2ddsES2Api33",
 };
 
+bool RIoTSystem::taskExecuted = false;
+
+RIoTSystem::SYSTEM_STATUS RIoTSystem::SYSTEM = RIoTSystem::SYS_NORMAL;
+
 RIoTSystem::DOOR_STATUS RIoTSystem::hashit(String string) {
   if (string == "locked")
     return DOOR_LOCKED;
@@ -29,7 +33,7 @@ RIoTSystem::DOOR_STATUS RIoTSystem::hashit(String string) {
 
 void RIoTSystem::setUpPins() {
   Serial.begin(MONITOR_SPEED);
-  attachInterrupt(INTERRUPT_PIN, backUpReadWrapper, RISING);
+  // attachInterrupt(INTERRUPT_PIN, backUpReadWrapper, RISING);
   pinMode(NETWORK_PIN, OUTPUT);
   pinMode(FIREBASE_PIN, OUTPUT);
   pinMode(READY_PIN, OUTPUT);
@@ -43,14 +47,14 @@ void IRAM_ATTR RIoTSystem::backUpRead() {
     digitalWrite(NETWORK_PIN, LOW);
     digitalWrite(FIREBASE_PIN, LOW);
     digitalWrite(READY_PIN, LOW);
-    RIoTSystem::getInstance()->SYSTEM = SYS_NORMAL;
+    RIoTSystem::setSystemStatus(SYS_NORMAL);
     ESP.restart();
   }
 
   if (startTimer) {
     Serial.println("\nBACKUP RFID READ ACTIVATED!");
     startTimer = false;
-    RIoTSystem::getInstance()->SYSTEM = SYS_BACKUP;
+    RIoTSystem::setSystemStatus(SYS_BACKUP);
     digitalWrite(NETWORK_PIN, HIGH);
     digitalWrite(FIREBASE_PIN, HIGH);
     digitalWrite(READY_PIN, HIGH);
@@ -64,19 +68,21 @@ void RIoTSystem::beep(int duration) {
 }
 
 void RIoTSystem::releaseDoor() {
+  RIoTFirebase RIoTFirebase;
   digitalWrite(READY_PIN, LOW);
   beep(200);
   digitalWrite(READY_PIN, HIGH);
   Serial.println("Door has been unlocked!"); // ACTUAL RELEASE
-  if (RIoTSystem::getInstance()->SYSTEM != SYS_NORMAL) {
-    RIoTSystem::getInstance()->SYSTEM = SYS_NORMAL;
+  riotFirebase.updateRiotCardStatus();
+  if (RIoTSystem::getInstance().SYSTEM != SYS_NORMAL) {
+    RIoTSystem::setSystemStatus(SYS_NORMAL);
     digitalWrite(READY_PIN, LOW);
     ESP.restart();
   }
 }
 
 void RIoTSystem::doorController(String tagUID) {
-  if (RIoTSystem::getInstance()->SYSTEM == SYS_NORMAL) {
+  if (RIoTSystem::getInstance().SYSTEM == SYS_NORMAL) {
     if (tagUID == "NULL") {
       // Serial.println("No RFID read."); // do not uncomment this -spam
       return;
@@ -143,7 +149,7 @@ void RIoTSystem::doorController(String tagUID) {
       break;
     }
     }
-  } else if (RIoTSystem::getInstance()->SYSTEM == SYS_BACKUP) {
+  } else if (RIoTSystem::getInstance().SYSTEM == SYS_BACKUP) {
     const int numKnownTags = sizeof(knownTagUIDs) / sizeof(knownTagUIDs[0]);
     for (int i = 0; i < numKnownTags; i++) {
       if (tagUID == knownTagUIDs[i]) {
@@ -159,7 +165,7 @@ void RIoTSystem::doorController(String tagUID) {
 }
 
 bool RIoTSystem::systemMaintenance() {
-  if (RIoTSystem::getInstance()->SYSTEM == SYS_NORMAL) {
+  if (RIoTSystem::getInstance().SYSTEM == SYS_NORMAL) {
     time_t now;
     time(&now);
     struct tm timeinfo;
@@ -172,20 +178,22 @@ bool RIoTSystem::systemMaintenance() {
       Serial.println("Failed to obtain time");
       return false;
     }
-
     // Check if it's between maintenanceLower Time and maintenanceUpper Time
     if (timeinfo.tm_hour == maintenanceLowerHour &&
         timeinfo.tm_min >= maintenanceLowerMinute &&
         timeinfo.tm_hour == maintenanceUpperHour &&
         timeinfo.tm_min <= maintenanceUpperMinute) {
+      Serial.println(taskExecuted);
       if (!taskExecuted) {
         RIoTFirebase riotFirebase;
         Serial.println("SYSTEM MAINTENANCE!");
+        Serial.println(ESP.getFreeHeap());
         riotFirebase.updateRiotCardStatus();
         Serial.println("33% ---------- RIoT Card status are updated.");
-        riotFirebase.resetInOrOutStatus();
+        // Serial.println(riotFirebase.updateNumberOfPeople());
         Serial.println("67% ---------- InOrOut status are updated.");
-        riotFirebase.updateNumberOfPeople();
+        // Serial.println(riotFirebase.updateNumberOfPeople());
+        //  riotFirebase.updateNumberOfPeople();
         Serial.println(
             "100% ---------- Number of people in the lab is updated.");
         taskExecuted = true;
@@ -195,7 +203,7 @@ bool RIoTSystem::systemMaintenance() {
       taskExecuted = false; // Reset the flag if not within the specified time
     }
     delay(1000); // Delay to avoid excessive checking
-  } else if (RIoTSystem::getInstance()->SYSTEM == SYS_BACKUP) {
+  } else if (RIoTSystem::getInstance().SYSTEM == SYS_BACKUP) {
     return false;
   }
 

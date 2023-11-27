@@ -22,10 +22,10 @@ bool RIoTNetwork::initWiFi() {
 
   while (WiFi.status() != WL_CONNECTED &&
          millis() - wifiStartTime <= wifiTimerThreshold) {
-    if (RIoTSystem::getInstance()->SYSTEM == RIoTSystem::SYS_NORMAL) {
+    if (RIoTSystem::getInstance().SYSTEM == RIoTSystem::SYS_NORMAL) {
       Serial.print(".");
       delay(100);
-    } else if (RIoTSystem::getInstance()->SYSTEM == RIoTSystem::SYS_BACKUP) {
+    } else if (RIoTSystem::getInstance().SYSTEM == RIoTSystem::SYS_BACKUP) {
       Serial.print("!");
       return false;
     }
@@ -38,10 +38,10 @@ bool RIoTNetwork::initWiFi() {
     WiFi.disconnect();
     WiFi.begin(ssid, password);
     while (WiFi.status() != WL_CONNECTED) {
-      if (RIoTSystem::getInstance()->SYSTEM == RIoTSystem::SYS_NORMAL) {
+      if (RIoTSystem::getInstance().SYSTEM == RIoTSystem::SYS_NORMAL) {
         Serial.print(".");
         delay(100);
-      } else if (RIoTSystem::getInstance()->SYSTEM == RIoTSystem::SYS_BACKUP) {
+      } else if (RIoTSystem::getInstance().SYSTEM == RIoTSystem::SYS_BACKUP) {
         Serial.print("!");
         return false;
       }

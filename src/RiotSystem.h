@@ -2,13 +2,44 @@
 #define RIOTSYSTEM_H_
 
 #include <WString.h>
+#include <mutex>
+
 class RIoTSystem {
 private:
+  std::mutex mutex_;
   int resetCounter;
   bool startTimer;
-  bool taskExecuted;
+  static bool taskExecuted;
+
+  int resetThreshold;
+  int maintenanceLowerHour;
+  int maintenanceLowerMinute;
+
+  int maintenanceUpperHour;
+  int maintenanceUpperMinute;
+
+  int buzzerWrongDuration;
 
   void beep(int duration);
+
+  RIoTSystem() {
+    SYSTEM_STATUS SYSTEM = SYS_NORMAL;
+    buzzerWrongDuration = 0.55 * 1000; // in seconds
+
+    maintenanceLowerHour = 15;
+    maintenanceLowerMinute = 00;
+
+    maintenanceUpperHour = 15;
+    maintenanceUpperMinute = 59;
+
+    taskExecuted = false;
+
+    startTimer = true;
+    resetCounter = 0;
+    resetThreshold = 5;
+  } // Private constructor prevents external instantiation
+  RIoTSystem(const RIoTSystem &) = delete;
+  RIoTSystem &operator=(const RIoTSystem &) = delete;
 
 public:
   enum SYSTEM_STATUS {
@@ -21,43 +52,17 @@ public:
     DOOR_SECURED,
     DOOR_DEFAULT,
   };
+  static SYSTEM_STATUS SYSTEM;
 
-  SYSTEM_STATUS SYSTEM;
-  int resetThreshold;
-  int maintenanceLowerHour;
-  int maintenanceLowerMinute;
-
-  int maintenanceUpperHour;
-  int maintenanceUpperMinute;
-
-  int buzzerWrongDuration;
   DOOR_STATUS hashit(String string);
 
-  static RIoTSystem *getInstance() {
+  static RIoTSystem &getInstance() {
     static RIoTSystem instance;
-    return &instance;
-  }
-  static void backUpReadWrapper() {
-    RIoTSystem *instance = getInstance();
-
-    instance->backUpRead();
-  }
-
-  RIoTSystem() {
-    SYSTEM = SYS_NORMAL;
-    buzzerWrongDuration = 0.55 * 1000; // in seconds
-
-    maintenanceLowerHour = 05;
-    maintenanceLowerMinute = 00;
-
-    maintenanceUpperHour = 05;
-    maintenanceUpperMinute = 30;
-
-    taskExecuted = false;
-
-    startTimer = true;
-    resetCounter = 0;
-    resetThreshold = 5;
+    return instance;
+  };
+  void setSystemStatus(SYSTEM_STATUS status) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    SYSTEM = status;
   }
 
   /**
