@@ -5,18 +5,19 @@
 #include "RiotSystem.h"
 
 RIoTNetwork riotNetwork;
-RIoTFirebase riotFirebase;
 RIoTRFID riotRfid;
 RIoTSystem &riotSystem = RIoTSystem::getInstance();
+// RIoTFirebase riotFirebase;
 
 void setup() {
+
   riotSystem.setUpPins();
   riotNetwork.initWiFi();
-  riotFirebase.initFirebase();
+  initFirebase(); // riotFirebase.initFirebase();
   riotRfid.initRFID();
 }
 
 void loop() {
-  // riotSystem.systemMaintenance();
+  riotSystem.systemMaintenance();
   riotSystem.doorController(riotRfid.readRFID());
 }

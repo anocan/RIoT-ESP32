@@ -4,14 +4,20 @@
 #include <WString.h>
 #include <mutex>
 
+///* IMPORTANT
+/// BE HIGHLY CAUTIOUS WHEN MODIFYING HERE
+/// KNOW WHAT YOU ARE DOING ELSE MEMORY CORRUPT HAPPENS
+///*
+
 class RIoTSystem {
 private:
   std::mutex mutex_;
+
   int resetCounter;
   bool startTimer;
-  static bool taskExecuted;
-
+  bool taskExecuted;
   int resetThreshold;
+
   int maintenanceLowerHour;
   int maintenanceLowerMinute;
 
@@ -26,11 +32,11 @@ private:
     SYSTEM_STATUS SYSTEM = SYS_NORMAL;
     buzzerWrongDuration = 0.55 * 1000; // in seconds
 
-    maintenanceLowerHour = 15;
+    maintenanceLowerHour = 05;
     maintenanceLowerMinute = 00;
 
-    maintenanceUpperHour = 15;
-    maintenanceUpperMinute = 59;
+    maintenanceUpperHour = 05;
+    maintenanceUpperMinute = 30;
 
     taskExecuted = false;
 
@@ -65,6 +71,10 @@ public:
     SYSTEM = status;
   }
 
+  static void ISR_function() {
+    RIoTSystem &instance = getInstance();
+    instance.backUpRead();
+  }
   /**
    *
    * @brief Set ups the pins, attaches the interrupt and starts the Serial.
@@ -82,7 +92,7 @@ public:
    * @note Backup, checks from the embedded RIoT knownTagUIDs such as "Master
    * Key", and "Backup Card".
    */
-  void backUpRead();
+  static void backUpRead();
 
   /**
    *

@@ -3,9 +3,19 @@
 #include "RiotSystem.h"
 #include "credentials.h"
 
-bool RIoTFirebase::initFirebase() {
+FirebaseData fbdo;
+FirebaseAuth auth;
+FirebaseConfig config;
+
+bool initFirebase() {
+  pinMode(FIREBASE_PIN, OUTPUT);
   digitalWrite(FIREBASE_PIN, HIGH);
+  config.api_key = API_KEY;
+  auth.user.email = USER_EMAIL;
+  auth.user.password = USER_PASSWORD;
   Firebase.reconnectNetwork(true);
+  fbdo.setBSSLBufferSize(4096, 1024);
+  fbdo.setResponseSize(2048);
   Firebase.begin(&config, &auth);
   while (!Firebase.ready()) {
     if (RIoTSystem::getInstance().SYSTEM == RIoTSystem::SYS_NORMAL) {
@@ -23,8 +33,7 @@ bool RIoTFirebase::initFirebase() {
   return true;
 }
 
-bool RIoTFirebase::firestoreGetJson(FirebaseJson *jsonObject,
-                                    const char *documentPath) {
+bool firestoreGetJson(FirebaseJson *jsonObject, const char *documentPath) {
   if (WiFi.status() == WL_CONNECTED && Firebase.ready()) {
     if (Firebase.Firestore.getDocument(&fbdo, FIREBASE_PROJECT_ID, "",
                                        documentPath, "")) {
@@ -39,10 +48,10 @@ bool RIoTFirebase::firestoreGetJson(FirebaseJson *jsonObject,
   return false;
 }
 
-inline bool RIoTFirebase::firestoreUpdateField(FirebaseJson *jsonObject,
-                                               const char *documentPath,
-                                               const char *updateField,
-                                               const char *updateValue) {
+inline bool firestoreUpdateField(FirebaseJson *jsonObject,
+                                 const char *documentPath,
+                                 const char *updateField,
+                                 const char *updateValue) {
   if (WiFi.status() == WL_CONNECTED && Firebase.ready()) {
     jsonObject->set(updateField, updateValue);
     // jsonObject.toString(Serial, true);
@@ -76,8 +85,7 @@ inline bool RIoTFirebase::firestoreUpdateField(FirebaseJson *jsonObject,
   return false;
 }
 
-String RIoTFirebase::getDataFromJsonObject(FirebaseJson *jsonObject,
-                                           const char *fieldPath) {
+String getDataFromJsonObject(FirebaseJson *jsonObject, const char *fieldPath) {
   FirebaseJsonData jsonData;
 
   jsonObject->get(jsonData, fieldPath, true);
@@ -85,65 +93,57 @@ String RIoTFirebase::getDataFromJsonObject(FirebaseJson *jsonObject,
   return jsonData.stringValue;
 }
 
-void RIoTFirebase::compareAndCount(const char *value1, const char *value2,
-                                   int *count) {
+void compareAndCount(const char *value1, const char *value2, int *count) {
 
   if (!strcmp(value1, value2)) {
     (*count)++;
   }
 }
 
-void RIoTFirebase::compareAndReturn(const char *value1, const char *value2,
-                                    int *count) {
+void compareAndReturn(const char *value1, const char *value2, int *count) {
 
   if (strcmp(value1, value2)) {
     (*count)++;
   }
 }
 
-void RIoTFirebase::setAllInOrOutToOut(const char *riotCardID,
-                                      const char *updateValue, int *count) {
-  RIoTFirebase riotFirebase;
+void setAllInOrOutToOut(const char *riotCardID, const char *updateValue,
+                        int *count) {
   FirebaseJson jsonRiotCard;
   char documentPath[64];
   sprintf(documentPath, "riotCards/%s", riotCardID);
 
-  riotFirebase.firestoreGetJson(&jsonRiotCard, documentPath);
+  firestoreGetJson(&jsonRiotCard, documentPath);
   jsonRiotCard.set("fields/inOrOut/stringValue", updateValue);
 
-  riotFirebase.firestoreUpdateField(&jsonRiotCard, documentPath,
-                                    "fields/inOrOut/stringValue", updateValue);
+  firestoreUpdateField(&jsonRiotCard, documentPath,
+                       "fields/inOrOut/stringValue", updateValue);
 }
 
-void RIoTFirebase::compareAndUpdateRiotCard(const char *riotCardID,
-                                            const char *comparisonValue,
-                                            int *count) {
-  RIoTFirebase riotFirebase;
+void compareAndUpdateRiotCard(const char *riotCardID,
+                              const char *comparisonValue, int *count) {
   FirebaseJson jsonRiotCard;
   char documentPath[64];
   sprintf(documentPath, "riotCards/%s", riotCardID);
 
-  riotFirebase.firestoreGetJson(&jsonRiotCard, documentPath);
-  String userType = riotFirebase.getDataFromJsonObject(
-      &jsonRiotCard, "fields/userType/stringValue");
+  firestoreGetJson(&jsonRiotCard, documentPath);
+  String userType =
+      getDataFromJsonObject(&jsonRiotCard, "fields/userType/stringValue");
   if (userType != comparisonValue) {
     return;
   }
 
   else if (userType == comparisonValue) {
-    Serial.println("V");
     jsonRiotCard.set("fields/riotCardStatus/stringValue", "inactive");
-    riotFirebase.firestoreUpdateField(&jsonRiotCard, documentPath,
-                                      "fields/riotCardStatus/stringValue",
-                                      "inactive");
+    firestoreUpdateField(&jsonRiotCard, documentPath,
+                         "fields/riotCardStatus/stringValue", "inactive");
   }
 }
 
-String RIoTFirebase::firebaseJsonIterator(
-    FirebaseJson *jsonObject, String pathToArray, const char *updateField,
-    const char *funcValue,
-    void (*func)(const char *, const char *, int *) = nullptr) {
-  Serial.println("F");
+String firebaseJsonIterator(FirebaseJson *jsonObject, String pathToArray,
+                            const char *updateField, const char *funcValue,
+                            void (*func)(const char *, const char *,
+                                         int *) = nullptr) {
   int count = 0;
   const char *info = nullptr; // I leave it to your imagination
 
@@ -153,6 +153,7 @@ String RIoTFirebase::firebaseJsonIterator(
   jsonObject->get(jsonData, pathToArray);
   jsonData.getArray(jsonArray);
   char tagstr[128];
+
   for (size_t i = 0; i < jsonArray.size(); i++) {
     sprintf(tagstr, "/[%d]/fields/%s/stringValue", i, updateField);
     jsonArray.get(arrayValue, tagstr);
@@ -171,7 +172,7 @@ String RIoTFirebase::firebaseJsonIterator(
   }
 }
 
-String RIoTFirebase::getNoOfPeople() {
+String getNoOfPeople() {
   int count = 0;
   int pageSize = 20;
   bool firstPage = true;
@@ -207,7 +208,7 @@ String RIoTFirebase::getNoOfPeople() {
   return String(count);
 }
 
-bool RIoTFirebase::updateNumberOfPeople() {
+bool updateNumberOfPeople() {
   FirebaseJson jsonObjectLabData;
   firestoreGetJson(&jsonObjectLabData, "labData/lab-data");
 
@@ -217,8 +218,8 @@ bool RIoTFirebase::updateNumberOfPeople() {
   return true;
 }
 
-bool RIoTFirebase::uploadAllFirestoreTasks(FirebaseJson *jsonObjectRiotCard,
-                                           const char *riotCardID) {
+bool uploadAllFirestoreTasks(FirebaseJson *jsonObjectRiotCard,
+                             const char *riotCardID) {
   String userID =
       getDataFromJsonObject(jsonObjectRiotCard, "fields/id/stringValue");
   char riotCardPath[64];
@@ -242,18 +243,20 @@ bool RIoTFirebase::uploadAllFirestoreTasks(FirebaseJson *jsonObjectRiotCard,
   return true;
 }
 
-void RIoTFirebase::updateRiotCardStatus() {
-  int pageSize = 5;
+void updateRiotCardStatus() {
+  int pageSize = 20;
   bool firstPage = true;
   FirebaseJson riotCardsList;
   FirebaseJsonData nextPageToken;
   const char *path = "riotCards/";
+
   while (riotCardsList.get(nextPageToken, "nextPageToken") || firstPage) {
     if (!firstPage) {
       Firebase.Firestore.listDocuments(&fbdo, FIREBASE_PROJECT_ID, "", path,
                                        pageSize, nextPageToken.stringValue, "",
                                        "riotCardID", false);
       riotCardsList.setJsonData(fbdo.payload().c_str());
+
       firebaseJsonIterator(&riotCardsList, "documents/", "riotCardID",
                            "deleted", &compareAndUpdateRiotCard);
 
@@ -270,7 +273,7 @@ void RIoTFirebase::updateRiotCardStatus() {
   }
 }
 
-void RIoTFirebase::resetInOrOutStatus() {
+void resetInOrOutStatus() {
   int pageSize = 20;
   bool firstPage = true;
   FirebaseJson riotCardsList;
