@@ -1,18 +1,10 @@
 #include "Network.h"
 #include "Pins.h"
 #include "RiotSystem.h"
-#include "credentials.h"
 #include "esp_wpa2.h"
 #include <Wifi.h>
 
-const char *ssid = WIFI_SSID;
-const char *ssidWPA2 = WIFI_SSID_WPA2;
-const char *password = WIFI_PASSWORD;
-unsigned long wifiStartTime = 0;
-int wifiTimerThreshold = 2 * 60 * 1000; // 2 minutes in milliseconds
-
-bool initWiFi() {
-  int wifiTimer = 0;
+bool RIoTNetwork::initWiFi() {
   digitalWrite(NETWORK_PIN, HIGH);
   WiFi.disconnect();
   WiFi.mode(WIFI_STA); // Optional
@@ -30,10 +22,10 @@ bool initWiFi() {
 
   while (WiFi.status() != WL_CONNECTED &&
          millis() - wifiStartTime <= wifiTimerThreshold) {
-    if (SYSTEM == SYS_NORMAL) {
+    if (RIoTSystem::getInstance()->SYSTEM == RIoTSystem::SYS_NORMAL) {
       Serial.print(".");
       delay(100);
-    } else if (SYSTEM == SYS_BACKUP) {
+    } else if (RIoTSystem::getInstance()->SYSTEM == RIoTSystem::SYS_BACKUP) {
       Serial.print("!");
       return false;
     }
@@ -46,10 +38,10 @@ bool initWiFi() {
     WiFi.disconnect();
     WiFi.begin(ssid, password);
     while (WiFi.status() != WL_CONNECTED) {
-      if (SYSTEM == SYS_NORMAL) {
+      if (RIoTSystem::getInstance()->SYSTEM == RIoTSystem::SYS_NORMAL) {
         Serial.print(".");
         delay(100);
-      } else if (SYSTEM == SYS_BACKUP) {
+      } else if (RIoTSystem::getInstance()->SYSTEM == RIoTSystem::SYS_BACKUP) {
         Serial.print("!");
         return false;
       }

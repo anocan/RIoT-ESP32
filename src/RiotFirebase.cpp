@@ -3,37 +3,28 @@
 #include "RiotSystem.h"
 #include "credentials.h"
 
-FirebaseData fbdo;
-FirebaseAuth auth;
-FirebaseConfig config;
-
-bool initFirebase() {
-  pinMode(FIREBASE_PIN, OUTPUT);
+bool RIoTFirebase::initFirebase() {
   digitalWrite(FIREBASE_PIN, HIGH);
-  config.api_key = API_KEY;
-  auth.user.email = USER_EMAIL;
-  auth.user.password = USER_PASSWORD;
   Firebase.reconnectNetwork(true);
-  fbdo.setBSSLBufferSize(4096, 1024);
-  fbdo.setResponseSize(2048);
   Firebase.begin(&config, &auth);
   while (!Firebase.ready()) {
-    if (SYSTEM == SYS_NORMAL) {
+    if (RIoTSystem::getInstance()->SYSTEM == RIoTSystem::SYS_NORMAL) {
       Serial.print("-");
       delay(100);
-    } else if (SYSTEM == SYS_BACKUP) {
+    } else if (RIoTSystem::getInstance()->SYSTEM == RIoTSystem::SYS_BACKUP) {
       Serial.print("!");
       return false;
     }
   }
-  if (SYSTEM == SYS_NORMAL) {
+  if (RIoTSystem::getInstance()->SYSTEM == RIoTSystem::SYS_NORMAL) {
     digitalWrite(FIREBASE_PIN, LOW);
   }
 
   return true;
 }
 
-bool firestoreGetJson(FirebaseJson *jsonObject, const char *documentPath) {
+bool RIoTFirebase::firestoreGetJson(FirebaseJson *jsonObject,
+                                    const char *documentPath) {
   if (WiFi.status() == WL_CONNECTED && Firebase.ready()) {
     if (Firebase.Firestore.getDocument(&fbdo, FIREBASE_PROJECT_ID, "",
                                        documentPath, "")) {
@@ -48,10 +39,10 @@ bool firestoreGetJson(FirebaseJson *jsonObject, const char *documentPath) {
   return false;
 }
 
-inline bool firestoreUpdateField(FirebaseJson *jsonObject,
-                                 const char *documentPath,
-                                 const char *updateField,
-                                 const char *updateValue) {
+inline bool RIoTFirebase::firestoreUpdateField(FirebaseJson *jsonObject,
+                                               const char *documentPath,
+                                               const char *updateField,
+                                               const char *updateValue) {
   if (WiFi.status() == WL_CONNECTED && Firebase.ready()) {
     jsonObject->set(updateField, updateValue);
     // jsonObject.toString(Serial, true);
@@ -85,7 +76,8 @@ inline bool firestoreUpdateField(FirebaseJson *jsonObject,
   return false;
 }
 
-String getDataFromJsonObject(FirebaseJson *jsonObject, const char *fieldPath) {
+String RIoTFirebase::getDataFromJsonObject(FirebaseJson *jsonObject,
+                                           const char *fieldPath) {
   FirebaseJsonData jsonData;
 
   jsonObject->get(jsonData, fieldPath, true);
@@ -93,57 +85,63 @@ String getDataFromJsonObject(FirebaseJson *jsonObject, const char *fieldPath) {
   return jsonData.stringValue;
 }
 
-void compareAndCount(const char *value1, const char *value2, int *count) {
+void RIoTFirebase::compareAndCount(const char *value1, const char *value2,
+                                   int *count) {
 
   if (!strcmp(value1, value2)) {
     (*count)++;
   }
 }
 
-void compareAndReturn(const char *value1, const char *value2, int *count) {
+void RIoTFirebase::compareAndReturn(const char *value1, const char *value2,
+                                    int *count) {
 
   if (strcmp(value1, value2)) {
     (*count)++;
   }
 }
 
-void setAllInOrOutToOut(const char *riotCardID, const char *updateValue,
-                        int *count) {
+void RIoTFirebase::setAllInOrOutToOut(const char *riotCardID,
+                                      const char *updateValue, int *count) {
+  RIoTFirebase riotFirebase;
   FirebaseJson jsonRiotCard;
   char documentPath[64];
   sprintf(documentPath, "riotCards/%s", riotCardID);
 
-  firestoreGetJson(&jsonRiotCard, documentPath);
+  riotFirebase.firestoreGetJson(&jsonRiotCard, documentPath);
   jsonRiotCard.set("fields/inOrOut/stringValue", updateValue);
 
-  firestoreUpdateField(&jsonRiotCard, documentPath,
-                       "fields/inOrOut/stringValue", updateValue);
+  riotFirebase.firestoreUpdateField(&jsonRiotCard, documentPath,
+                                    "fields/inOrOut/stringValue", updateValue);
 }
 
-void compareAndUpdateRiotCard(const char *riotCardID,
-                              const char *comparisonValue, int *count) {
+void RIoTFirebase::compareAndUpdateRiotCard(const char *riotCardID,
+                                            const char *comparisonValue,
+                                            int *count) {
+  RIoTFirebase riotFirebase;
   FirebaseJson jsonRiotCard;
   char documentPath[64];
   sprintf(documentPath, "riotCards/%s", riotCardID);
 
-  firestoreGetJson(&jsonRiotCard, documentPath);
-  String userType =
-      getDataFromJsonObject(&jsonRiotCard, "fields/userType/stringValue");
+  riotFirebase.firestoreGetJson(&jsonRiotCard, documentPath);
+  String userType = riotFirebase.getDataFromJsonObject(
+      &jsonRiotCard, "fields/userType/stringValue");
   if (userType != comparisonValue) {
     return;
   }
 
   else if (userType == comparisonValue) {
     jsonRiotCard.set("fields/riotCardStatus/stringValue", "inactive");
-    firestoreUpdateField(&jsonRiotCard, documentPath,
-                         "fields/riotCardStatus/stringValue", "inactive");
+    riotFirebase.firestoreUpdateField(&jsonRiotCard, documentPath,
+                                      "fields/riotCardStatus/stringValue",
+                                      "inactive");
   }
 }
 
-String firebaseJsonIterator(FirebaseJson *jsonObject, String pathToArray,
-                            const char *updateField, const char *funcValue,
-                            void (*func)(const char *, const char *,
-                                         int *) = nullptr) {
+String RIoTFirebase::firebaseJsonIterator(
+    FirebaseJson *jsonObject, String pathToArray, const char *updateField,
+    const char *funcValue,
+    void (*func)(const char *, const char *, int *) = nullptr) {
   int count = 0;
   const char *info = nullptr; // I leave it to your imagination
 
@@ -172,7 +170,7 @@ String firebaseJsonIterator(FirebaseJson *jsonObject, String pathToArray,
   }
 }
 
-String getNoOfPeople() {
+String RIoTFirebase::getNoOfPeople() {
   int count = 0;
   int pageSize = 10;
   bool firstPage = true;
@@ -208,7 +206,7 @@ String getNoOfPeople() {
   return String(count);
 }
 
-bool updateNumberOfPeople() {
+bool RIoTFirebase::updateNumberOfPeople() {
   FirebaseJson jsonObjectLabData;
   firestoreGetJson(&jsonObjectLabData, "labData/lab-data");
 
@@ -218,8 +216,8 @@ bool updateNumberOfPeople() {
   return true;
 }
 
-bool uploadAllFirestoreTasks(FirebaseJson *jsonObjectRiotCard,
-                             const char *riotCardID) {
+bool RIoTFirebase::uploadAllFirestoreTasks(FirebaseJson *jsonObjectRiotCard,
+                                           const char *riotCardID) {
   String userID =
       getDataFromJsonObject(jsonObjectRiotCard, "fields/id/stringValue");
   char riotCardPath[64];
@@ -243,7 +241,7 @@ bool uploadAllFirestoreTasks(FirebaseJson *jsonObjectRiotCard,
   return true;
 }
 
-void updateRiotCardStatus() {
+void RIoTFirebase::updateRiotCardStatus() {
   int pageSize = 20;
   bool firstPage = true;
   FirebaseJson riotCardsList;
@@ -273,7 +271,7 @@ void updateRiotCardStatus() {
   }
 }
 
-void resetInOrOutStatus() {
+void RIoTFirebase::resetInOrOutStatus() {
   int pageSize = 20;
   bool firstPage = true;
   FirebaseJson riotCardsList;
@@ -303,49 +301,4 @@ void resetInOrOutStatus() {
       firstPage = false;
     }
   }
-}
-
-class MyClass {
-private:
-  FirebaseData *fb;
-  FirebaseJson *json;
-  String documentPath;
-
-public:
-  MyClass() {
-    fb = new FirebaseData();
-    json = new FirebaseJson();
-
-    if (fb == nullptr || json == nullptr) {
-      Serial.println("Memory allocation failed");
-      // Handle the failure case accordingly
-      return;
-    }
-
-    documentPath = "users/"; // Set your document path
-                             // fb->setBSSLBufferSize(4096, 1024);
-    // fb->setResponseSize(2048);
-  }
-
-  ~MyClass() {
-    delete fb;
-    delete json;
-  }
-
-  void test() {
-    // yield();
-    // Firebase.Firestore.getDocument(fb, FIREBASE_PROJECT_ID, "",
-    // documentPath.c_str());
-    Firebase.Firestore.listDocuments(fb, FIREBASE_PROJECT_ID, "", "users/", 10,
-                                     "", "", "", false);
-    // Serial.println("a");
-    json->setJsonData(fb->payload().c_str());
-    Serial.println(json->toString(Serial, true));
-  }
-};
-
-void testPtr() {
-  MyClass *ptr = new MyClass();
-  ptr->test();
-  delete ptr;
 }

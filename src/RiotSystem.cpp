@@ -4,33 +4,19 @@
 #include "RFID.h"
 #include "RiotFirebase.h"
 
-SYSTEM_STATUS SYSTEM = SYS_NORMAL;
-int buzzerWrongDuration = 0.55 * 1000; // in seconds
-const char *ntpServer = "pool.ntp.org";
-const long gmtOffset_sec = 3 * 3600; // +3 UTC in seconds
-const int daylightOffset_sec = 0;
+const char *knownTagUIDs[] = {
+    "ec2ff537",
+    "e3f76c19",
+    "4c60a25f",
+};
 
-const int maintenanceLowerHour = 05;
-const int maintenanceLowerMinute = 00;
+const char *correspondingIDs[] = {
+    "MASTER KEY",
+    "ID1",
+    "ZGwWrS4bjrZPXa8V2ddsES2Api33",
+};
 
-const int maintenanceUpperHour = 05;
-const int maintenanceUpperMinute = 30;
-
-bool taskExecuted = false;
-
-bool startTimer = true;
-long now = micros();
-long lastTrigger = 0;
-int resetCounter = 0;
-int resetThreshold = 5;
-
-const char *knownTagUIDs[] = {"ec2ff537", "e3f76c19", "4c60a25f"};
-
-const int numKnownTags = sizeof(knownTagUIDs) / sizeof(knownTagUIDs[0]);
-const char *correspondingIDs[] = {"MASTER KEY", "ID1",
-                                  "ZGwWrS4bjrZPXa8V2ddsES2Api33"};
-
-DOOR_STATUS hashit(String string) {
+RIoTSystem::DOOR_STATUS RIoTSystem::hashit(String string) {
   if (string == "locked")
     return DOOR_LOCKED;
   else if (string == "unlocked")
@@ -40,80 +26,81 @@ DOOR_STATUS hashit(String string) {
   else
     return DOOR_DEFAULT;
 }
-void setUpPins() {
+
+void RIoTSystem::setUpPins() {
   Serial.begin(MONITOR_SPEED);
-  attachInterrupt(INTERRUPT_PIN, backUpRead, RISING);
+  attachInterrupt(INTERRUPT_PIN, backUpReadWrapper, RISING);
   pinMode(NETWORK_PIN, OUTPUT);
   pinMode(FIREBASE_PIN, OUTPUT);
   pinMode(READY_PIN, OUTPUT);
   pinMode(BUZZER_PIN, OUTPUT);
 }
 
-void IRAM_ATTR backUpRead() {
-  startTimer = true;
+void IRAM_ATTR RIoTSystem::backUpRead() {
   resetCounter++;
   if (resetCounter >= resetThreshold) {
     // System resets after sufficient amount of trigger
     digitalWrite(NETWORK_PIN, LOW);
     digitalWrite(FIREBASE_PIN, LOW);
     digitalWrite(READY_PIN, LOW);
-    SYSTEM = SYS_NORMAL;
+    RIoTSystem::getInstance()->SYSTEM = SYS_NORMAL;
     ESP.restart();
   }
 
   if (startTimer) {
     Serial.println("\nBACKUP RFID READ ACTIVATED!");
-    lastTrigger = micros();
     startTimer = false;
-    SYSTEM = SYS_BACKUP;
+    RIoTSystem::getInstance()->SYSTEM = SYS_BACKUP;
     digitalWrite(NETWORK_PIN, HIGH);
     digitalWrite(FIREBASE_PIN, HIGH);
     digitalWrite(READY_PIN, HIGH);
   }
 }
 
-void beep(int duration) {
+void RIoTSystem::beep(int duration) {
   digitalWrite(BUZZER_PIN, HIGH);
   delay(duration);
   digitalWrite(BUZZER_PIN, LOW);
 }
 
-void releaseDoor() {
+void RIoTSystem::releaseDoor() {
   digitalWrite(READY_PIN, LOW);
   beep(200);
   digitalWrite(READY_PIN, HIGH);
   Serial.println("Door has been unlocked!"); // ACTUAL RELEASE
-  if (SYSTEM != SYS_NORMAL) {
-    SYSTEM = SYS_NORMAL;
+  if (RIoTSystem::getInstance()->SYSTEM != SYS_NORMAL) {
+    RIoTSystem::getInstance()->SYSTEM = SYS_NORMAL;
+    digitalWrite(READY_PIN, LOW);
     ESP.restart();
   }
 }
 
-void doorController(String tagUID) {
-  if (SYSTEM == SYS_NORMAL) {
+void RIoTSystem::doorController(String tagUID) {
+  if (RIoTSystem::getInstance()->SYSTEM == SYS_NORMAL) {
     if (tagUID == "NULL") {
       // Serial.println("No RFID read."); // do not uncomment this -spam
       return;
     }
-
+    RIoTFirebase riotFirebase;
     char riotCardPath[64];
     strcpy(riotCardPath, "riotCards/");
     strcat(riotCardPath, tagUID.c_str());
     FirebaseJson jsonObjectRiotCard;
     FirebaseJson jsonObjectDoor;
-    firestoreGetJson(&jsonObjectRiotCard, riotCardPath);
-    firestoreGetJson(&jsonObjectDoor, "labData/lab-data");
+    riotFirebase.firestoreGetJson(&jsonObjectRiotCard, riotCardPath);
+    riotFirebase.firestoreGetJson(&jsonObjectDoor, "labData/lab-data");
 
-    String dataDoor =
-        getDataFromJsonObject(&jsonObjectDoor, "fields/labDoor/stringValue");
+    String dataDoor = riotFirebase.getDataFromJsonObject(
+        &jsonObjectDoor, "fields/labDoor/stringValue");
 
     switch (hashit(dataDoor)) {
     case DOOR_LOCKED: {
-      String jsonDataRiotCardStatus = getDataFromJsonObject(
+      String jsonDataRiotCardStatus = riotFirebase.getDataFromJsonObject(
           &jsonObjectRiotCard, "fields/riotCardStatus/stringValue");
       if (jsonDataRiotCardStatus == "active") {
         releaseDoor();
-        uploadAllFirestoreTasks(&jsonObjectRiotCard, tagUID.c_str());
+        riotFirebase.uploadAllFirestoreTasks(&jsonObjectRiotCard,
+                                             tagUID.c_str());
       } else if (jsonDataRiotCardStatus == "inactive") {
         digitalWrite(NETWORK_PIN, HIGH);
         beep(buzzerWrongDuration);
@@ -136,8 +123,8 @@ void doorController(String tagUID) {
     }
 
     case DOOR_SECURED: {
-      String userType = getDataFromJsonObject(&jsonObjectRiotCard,
-                                              "fields/userType/stringValue");
+      String userType = riotFirebase.getDataFromJsonObject(
+          &jsonObjectRiotCard, "fields/userType/stringValue");
       if (userType == "admin" || userType == "superadmin") {
         releaseDoor();
         Serial.println("Admin pass.");
@@ -156,7 +143,8 @@ void doorController(String tagUID) {
       break;
     }
     }
-  } else if (SYSTEM == SYS_BACKUP) {
+  } else if (RIoTSystem::getInstance()->SYSTEM == SYS_BACKUP) {
+    const int numKnownTags = sizeof(knownTagUIDs) / sizeof(knownTagUIDs[0]);
     for (int i = 0; i < numKnownTags; i++) {
       if (tagUID == knownTagUIDs[i]) {
         // Match found
@@ -170,39 +158,46 @@ void doorController(String tagUID) {
   }
 }
 
-bool systemMaintenance() {
-  time_t now;
-  time(&now);
-  struct tm timeinfo;
-  // char formattedTime[30]; // Buffer to hold the formatted time
+bool RIoTSystem::systemMaintenance() {
+  if (RIoTSystem::getInstance()->SYSTEM == SYS_NORMAL) {
+    time_t now;
+    time(&now);
+    struct tm timeinfo;
+    // char formattedTime[30]; // Buffer to hold the formatted time
 
-  localtime_r(&now, &timeinfo);
+    localtime_r(&now, &timeinfo);
 
-  // Get current time
-  if (!getLocalTime(&timeinfo)) {
-    Serial.println("Failed to obtain time");
+    // Get current time
+    if (!getLocalTime(&timeinfo)) {
+      Serial.println("Failed to obtain time");
+      return false;
+    }
+
+    // Check if it's between maintenanceLower Time and maintenanceUpper Time
+    if (timeinfo.tm_hour == maintenanceLowerHour &&
+        timeinfo.tm_min >= maintenanceLowerMinute &&
+        timeinfo.tm_hour == maintenanceUpperHour &&
+        timeinfo.tm_min <= maintenanceUpperMinute) {
+      if (!taskExecuted) {
+        RIoTFirebase riotFirebase;
+        Serial.println("SYSTEM MAINTENANCE!");
+        riotFirebase.updateRiotCardStatus();
+        Serial.println("33% ---------- RIoT Card status are updated.");
+        riotFirebase.resetInOrOutStatus();
+        Serial.println("67% ---------- InOrOut status are updated.");
+        riotFirebase.updateNumberOfPeople();
+        Serial.println(
+            "100% ---------- Number of people in the lab is updated.");
+        taskExecuted = true;
+        return true;
+      }
+    } else {
+      taskExecuted = false; // Reset the flag if not within the specified time
+    }
+    delay(1000); // Delay to avoid excessive checking
+  } else if (RIoTSystem::getInstance()->SYSTEM == SYS_BACKUP) {
     return false;
   }
 
-  // Check if it's between maintenanceLower Time and maintenanceUpper Time
-  if (timeinfo.tm_hour == maintenanceLowerHour &&
-      timeinfo.tm_min >= maintenanceLowerMinute &&
-      timeinfo.tm_hour == maintenanceUpperHour &&
-      timeinfo.tm_min <= maintenanceUpperMinute) {
-    if (!taskExecuted) {
-      Serial.println("SYSTEM MAINTENANCE!");
-      updateRiotCardStatus();
-      Serial.println("33% ---------- RIoT Card status are updated.");
-      resetInOrOutStatus();
-      Serial.println("67% ---------- InOrOut status are updated.");
-      updateNumberOfPeople();
-      Serial.println("100% ---------- Number of people in the lab is updated.");
-      taskExecuted = true;
-      return true;
-    }
-  } else {
-    taskExecuted = false; // Reset the flag if not within the specified time
-  }
-  delay(1000); // Delay to avoid excessive checking
   return false;
 }

@@ -7,16 +7,16 @@
 
 MFRC522 mfrc522(SS_PIN, RST_PIN);
 
-bool initRFID() {
+bool RIoTRFID::initRFID() {
   SPI.begin();
   mfrc522.PCD_Init();
-  if (SYSTEM == SYS_NORMAL) {
+  if (RIoTSystem::getInstance()->SYSTEM == RIoTSystem::SYS_NORMAL) {
     digitalWrite(READY_PIN, HIGH);
   }
   return true;
 }
 
-String readRFID() {
+String RIoTRFID::readRFID() {
   if (mfrc522.PICC_IsNewCardPresent()) {
     if (mfrc522.PICC_ReadCardSerial()) {
       Serial.print("Tag UID: ");

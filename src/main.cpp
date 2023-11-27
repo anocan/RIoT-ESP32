@@ -4,14 +4,19 @@
 #include "RiotFirebase.h"
 #include "RiotSystem.h"
 
+RIoTNetwork riotNetwork;
+RIoTFirebase riotFirebase;
+RIoTSystem riotSystem;
+RIoTRFID riotRfid;
+
 void setup() {
-  setUpPins();
-  initWiFi();
-  initFirebase();
-  initRFID();
+  riotSystem.setUpPins();
+  riotNetwork.initWiFi();
+  riotFirebase.initFirebase();
+  riotRfid.initRFID();
 }
 
 void loop() {
-  systemMaintenance();
-  doorController(readRFID());
+  riotSystem.systemMaintenance();
+  riotSystem.doorController(riotRfid.readRFID());
 }
