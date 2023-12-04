@@ -28,9 +28,6 @@ private:
   int buzzerWrongDuration;
   int buzzerCorrectDuration;
 
-  const char *releaseCommand;
-  const char *holdCommand;
-
   void beep(int duration);
 
   RIoTSystem() {
@@ -49,8 +46,8 @@ private:
     startTimer = true;
     resetCounter = 0;
     resetThreshold = 5;
-    releaseCommand = "release";
-    holdCommand = "hold";
+    releaseCommand = "release|";
+    holdCommand = "hold|";
     doorHoldDuration = 1 * 1000; // t seconds in milliseconds
   } // Private constructor prevents external instantiation
   RIoTSystem(const RIoTSystem &) = delete;
@@ -71,6 +68,8 @@ public:
   static SYSTEM_STATUS SYSTEM;
   int doorHoldDuration;
   unsigned long doorHoldStartTime;
+  const char *releaseCommand;
+  const char *holdCommand;
 
   DOOR_STATUS hashit(String string);
 

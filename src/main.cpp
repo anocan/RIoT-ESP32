@@ -18,6 +18,6 @@ void setup() {
 
 void loop() {
   // riotSystem.bigBrotherDoorController(riotRfid.readRFID());
-  riotSystem.requestToLittleLister("ANAN");
+  riotSystem.requestToLittleLister(riotSystem.releaseCommand);
   // riotSystem.systemMaintenance();
 }
