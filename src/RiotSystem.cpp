@@ -31,13 +31,11 @@ RIoTSystem::DOOR_STATUS RIoTSystem::hashit(String string) {
     return DOOR_DEFAULT;
 }
 
-HardwareSerial SerialPort(2); // use uart2
 void RIoTSystem::setUpPins() {
   preferences.begin("RIoT", false);
-  Serial.begin(MONITOR_SPEED);
-  SerialPort.begin(MONITOR_SPEED, SERIAL_8N1, RX_PIN,
-                   TX_PIN); // pins 16 rx2, 17 tx2, MONITOR_SPEED bps, 8 bits no
-                            // parity 1 stop bit
+  Serial.begin(MONITOR_SPEED, SERIAL_8N1, RX_PIN,
+               TX_PIN); // pins 16 rx2, 17 tx2, MONITOR_SPEED bps, 8 bits no
+                        // parity 1 stop bit
   attachInterrupt(INTERRUPT_PIN, ISR_function, RISING);
   pinMode(NETWORK_PIN, OUTPUT);
   pinMode(FIREBASE_PIN, OUTPUT);
@@ -77,8 +75,9 @@ void RIoTSystem::beep(int duration) {
 }
 
 void RIoTSystem::requestToLittleLister(const char *request) {
-  SerialPort.print(request);
-  Serial.println("Door has been unlocked!"); // Communicate with Little Sister
+  Serial.print(request);
+  // Serial.println("Door has been unlocked!"); // Communicate with Little
+  // Sister
   if (RIoTSystem::getInstance().SYSTEM != SYS_NORMAL) {
     RIoTSystem::setSystemStatus(SYS_NORMAL);
     digitalWrite(READY_PIN, LOW);
@@ -88,20 +87,26 @@ void RIoTSystem::requestToLittleLister(const char *request) {
 }
 
 bool RIoTSystem::littleSisterDoorController() {
-  if (SerialPort.available()) {
+  if (Serial.available()) {
     // Serial.println(Sucessfull serial connection.);
   } else {
+    Serial.println("unsuccess");
     return false;
   }
   int maxBufferSize = 128;
   char requestFromBigBrother[maxBufferSize];
+  Serial.print("Received: ");
+  Serial.println(Serial.readString());
   if (WiFi.status() == WL_CONNECTED && Firebase.ready()) {
-    int bytesRead = SerialPort.readBytesUntil('\n', requestFromBigBrother,
+    /*
+    int bytesRead = Serial.readBytesUntil('\n', requestFromBigBrother,
                                               maxBufferSize - 1);
     requestFromBigBrother[bytesRead] = '\0'; // Null-terminate the string
-    // const char *requestFromBigBrother = SerialPort.read();
+    */
+    // const char *requestFromBigBrother = Serial.read();
     Serial.print("Received: ");
-    Serial.println(requestFromBigBrother);
+    Serial.println(Serial.readString());
+    /*
     FirebaseJson labData;
     firestoreGetJson(&labData, "labData/lab-data");
     String doorStatus =
@@ -116,7 +121,7 @@ bool RIoTSystem::littleSisterDoorController() {
         digitalWrite(DOOR_PIN, LOW); // Actual release
         digitalWrite(READY_PIN, LOW);
         while (true) {
-          int bytesRead = SerialPort.readBytesUntil('\n', requestFromBigBrother,
+          int bytesRead = Serial.readBytesUntil('\n', requestFromBigBrother,
                                                     maxBufferSize - 1);
           requestFromBigBrother[bytesRead] = '\0'; // Null-terminate the string
           if (!strcmp(requestFromBigBrother,
@@ -154,7 +159,7 @@ bool RIoTSystem::littleSisterDoorController() {
         digitalWrite(FIREBASE_PIN, LOW);
         digitalWrite(READY_PIN, LOW);
         while (true) {
-          int bytesRead = SerialPort.readBytesUntil('\n', requestFromBigBrother,
+          int bytesRead = Serial.readBytesUntil('\n', requestFromBigBrother,
                                                     maxBufferSize - 1);
           requestFromBigBrother[bytesRead] = '\0'; // Null-terminate the string
           if (!strcmp(requestFromBigBrother,
@@ -186,7 +191,7 @@ bool RIoTSystem::littleSisterDoorController() {
       digitalWrite(DOOR_PIN, LOW); // Actual release
       digitalWrite(READY_PIN, LOW);
       while (true) {
-        int bytesRead = SerialPort.readBytesUntil('\n', requestFromBigBrother,
+        int bytesRead = Serial.readBytesUntil('\n', requestFromBigBrother,
                                                   maxBufferSize - 1);
         requestFromBigBrother[bytesRead] = '\0'; // Null-terminate the string
         if (!strcmp(requestFromBigBrother,
@@ -197,7 +202,7 @@ bool RIoTSystem::littleSisterDoorController() {
         }
       }
       return true;
-    }
+    }*/
   }
   return false;
 }
@@ -215,11 +220,12 @@ void RIoTSystem::bigBrotherDoorController(String tagUID) {
     strcat(riotCardPath, tagUID.c_str());
     FirebaseJson jsonObjectRiotCard;
     FirebaseJson jsonObjectDoor;
-    logger(&jsonObjectRiotCard, tagUID);
     if (firestoreGetJson(&jsonObjectRiotCard, riotCardPath)) {
+      logger(&jsonObjectRiotCard, tagUID);
       // Serial.println("Card read successfuly")
     } else {
-      beep(700);
+      beep(buzzerWrongDuration);
+      logger(&jsonObjectRiotCard, tagUID);
       return;
     }
     firestoreGetJson(&jsonObjectDoor, "labData/lab-data");
@@ -233,7 +239,7 @@ void RIoTSystem::bigBrotherDoorController(String tagUID) {
           &jsonObjectRiotCard, "fields/riotCardStatus/stringValue");
       if (jsonDataRiotCardStatus == "active") {
         digitalWrite(READY_PIN, LOW);
-        beep(200);
+        beep(buzzerCorrectDuration);
         requestToLittleLister(releaseCommand);
         uploadAllFirestoreTasks(&jsonObjectRiotCard, tagUID.c_str());
         while (millis() - doorHoldStartTime <= doorHoldDuration) {
@@ -266,7 +272,7 @@ void RIoTSystem::bigBrotherDoorController(String tagUID) {
                                               "fields/userType/stringValue");
       if (userType == "admin" || userType == "superadmin") {
         digitalWrite(READY_PIN, LOW);
-        beep(200);
+        beep(buzzerCorrectDuration);
         requestToLittleLister(releaseCommand);
         while (millis() - doorHoldStartTime <= doorHoldDuration) {
           Serial.println("waiting to lock...");
@@ -301,7 +307,7 @@ void RIoTSystem::bigBrotherDoorController(String tagUID) {
         digitalWrite(READY_PIN, LOW);
         digitalWrite(NETWORK_PIN, LOW);
         digitalWrite(FIREBASE_PIN, LOW);
-        beep(200);
+        beep(buzzerCorrectDuration);
         requestToLittleLister(releaseCommand);
         while (millis() - doorHoldStartTime <= doorHoldDuration) {
           Serial.println("waiting to lock...");
@@ -312,7 +318,7 @@ void RIoTSystem::bigBrotherDoorController(String tagUID) {
         break;
       }
     }
-    beep(700);
+    beep(buzzerWrongDuration);
 
     return;
   }

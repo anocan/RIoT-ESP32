@@ -350,13 +350,13 @@ bool logger(FirebaseJson *jsonObjectRiotCard, String updateField) {
           formattedTime);
   sprintf(updateMask, "_%s", formattedTime);
   jsonObjectRiotCard->set(fieldPath, updateField);
-  Serial.println(jsonObjectRiotCard->toString(Serial, true));
+  // Serial.println(jsonObjectRiotCard->toString(Serial, true));
   Serial.println(updateMask);
   if (Firebase.Firestore.patchDocument(&fbdo, FIREBASE_PROJECT_ID, "",
                                        documentPath, jsonObjectRiotCard->raw(),
                                        updateMask)) {
 
-    Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
+    // Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
     return true;
   } else {
     Serial.println(fbdo.errorReason());

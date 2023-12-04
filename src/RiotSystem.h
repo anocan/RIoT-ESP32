@@ -26,6 +26,7 @@ private:
   int maintenanceUpperMinute;
 
   int buzzerWrongDuration;
+  int buzzerCorrectDuration;
 
   const char *releaseCommand;
   const char *holdCommand;
@@ -34,7 +35,8 @@ private:
 
   RIoTSystem() {
     SYSTEM_STATUS SYSTEM = SYS_NORMAL;
-    buzzerWrongDuration = 0.55 * 1000; // in seconds
+    buzzerWrongDuration = 0.55 * 1000;  // in seconds
+    buzzerCorrectDuration = 0.2 * 1000; // in seconds
 
     maintenanceLowerHour = 05;
     maintenanceLowerMinute = 00;
@@ -49,7 +51,7 @@ private:
     resetThreshold = 5;
     releaseCommand = "release";
     holdCommand = "hold";
-    doorHoldDuration = 3 * 1000; // t seconds in milliseconds
+    doorHoldDuration = 1 * 1000; // t seconds in milliseconds
   } // Private constructor prevents external instantiation
   RIoTSystem(const RIoTSystem &) = delete;
   RIoTSystem &operator=(const RIoTSystem &) = delete;
