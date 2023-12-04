@@ -91,11 +91,14 @@ bool RIoTSystem::littleSisterDoorController() {
   if (SerialPort.available()) {
     // Serial.println(Sucessfull serial connection.);
   } else {
+    Serial.println("unssuccess");
     return false;
   }
   int maxBufferSize = 128;
   char requestFromBigBrother[maxBufferSize];
-  if (WiFi.status() == WL_CONNECTED && Firebase.ready()) {
+  Serial.print("Received: ");
+  Serial.println(SerialPort.readStringUntil('X'));
+  if (WiFi.status() == WL_CONNECTED && Firebase.ready() && 0) {
     int bytesRead = SerialPort.readBytesUntil('\n', requestFromBigBrother,
                                               maxBufferSize - 1);
     requestFromBigBrother[bytesRead] = '\0'; // Null-terminate the string
