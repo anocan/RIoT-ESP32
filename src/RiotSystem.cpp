@@ -31,13 +31,20 @@ RIoTSystem::DOOR_STATUS RIoTSystem::hashit(String string) {
     return DOOR_DEFAULT;
 }
 
+HardwareSerial SerialPort(2); // use uart2
 void RIoTSystem::setUpPins() {
+  preferences.begin("RIoT", false);
   Serial.begin(MONITOR_SPEED);
+  SerialPort.begin(MONITOR_SPEED, SERIAL_8N1, RX_PIN,
+                   TX_PIN); // pins 16 rx2, 17 tx2, MONITOR_SPEED bps, 8 bits no
+                            // parity 1 stop bit
   attachInterrupt(INTERRUPT_PIN, ISR_function, RISING);
   pinMode(NETWORK_PIN, OUTPUT);
   pinMode(FIREBASE_PIN, OUTPUT);
   pinMode(READY_PIN, OUTPUT);
   pinMode(BUZZER_PIN, OUTPUT);
+  pinMode(DOOR_PIN, OUTPUT);    // comment this line for Big Brother
+  digitalWrite(DOOR_PIN, HIGH); // comment this line for Big Brother
 }
 
 void IRAM_ATTR RIoTSystem::backUpRead() {
@@ -49,6 +56,7 @@ void IRAM_ATTR RIoTSystem::backUpRead() {
     digitalWrite(FIREBASE_PIN, LOW);
     digitalWrite(READY_PIN, LOW);
     RIoTSystem::getInstance().setSystemStatus(SYS_NORMAL);
+    RIoTSystem::getInstance().preferences.end();
     ESP.restart();
   }
 
@@ -68,31 +76,152 @@ void RIoTSystem::beep(int duration) {
   digitalWrite(BUZZER_PIN, LOW);
 }
 
-void RIoTSystem::releaseDoor() {
-  digitalWrite(READY_PIN, LOW);
-  beep(200);
-  digitalWrite(READY_PIN, HIGH);
-  Serial.println("Door has been unlocked!"); // ACTUAL RELEASE
-  updateNumberOfPeople();
+void RIoTSystem::requestToLittleLister(const char *request) {
+  SerialPort.print(request);
+  Serial.println("Door has been unlocked!"); // Communicate with Little Sister
   if (RIoTSystem::getInstance().SYSTEM != SYS_NORMAL) {
     RIoTSystem::setSystemStatus(SYS_NORMAL);
     digitalWrite(READY_PIN, LOW);
+    RIoTSystem::getInstance().preferences.end();
     ESP.restart();
   }
 }
 
-void RIoTSystem::doorController(String tagUID) {
+bool RIoTSystem::littleSisterDoorController() {
+  if (SerialPort.available()) {
+    // Serial.println(Sucessfull serial connection.);
+  } else {
+    return false;
+  }
+  int maxBufferSize = 128;
+  char requestFromBigBrother[maxBufferSize];
+  if (WiFi.status() == WL_CONNECTED && Firebase.ready()) {
+    int bytesRead = SerialPort.readBytesUntil('\n', requestFromBigBrother,
+                                              maxBufferSize - 1);
+    requestFromBigBrother[bytesRead] = '\0'; // Null-terminate the string
+    // const char *requestFromBigBrother = SerialPort.read();
+    Serial.print("Received: ");
+    Serial.println(requestFromBigBrother);
+    FirebaseJson labData;
+    firestoreGetJson(&labData, "labData/lab-data");
+    String doorStatus =
+        getDataFromJsonObject(&labData, "fields/labDoor/stringValue");
+
+    switch (hashit(doorStatus)) {
+    case DOOR_LOCKED: {
+      digitalWrite(NETWORK_PIN, LOW);
+      digitalWrite(FIREBASE_PIN, LOW);
+      if (!strcmp(requestFromBigBrother,
+                  RIoTSystem::getInstance().releaseCommand)) {
+        digitalWrite(DOOR_PIN, LOW); // Actual release
+        digitalWrite(READY_PIN, LOW);
+        while (true) {
+          int bytesRead = SerialPort.readBytesUntil('\n', requestFromBigBrother,
+                                                    maxBufferSize - 1);
+          requestFromBigBrother[bytesRead] = '\0'; // Null-terminate the string
+          if (!strcmp(requestFromBigBrother,
+                      RIoTSystem::getInstance().holdCommand)) {
+            digitalWrite(DOOR_PIN, HIGH);
+            digitalWrite(READY_PIN, HIGH);
+
+            break;
+          }
+        }
+        return true;
+      }
+
+      break;
+    }
+
+    case DOOR_UNLOCKED: {
+      digitalWrite(DOOR_PIN, LOW);
+      digitalWrite(NETWORK_PIN, LOW);
+      digitalWrite(FIREBASE_PIN, LOW);
+      digitalWrite(READY_PIN, LOW);
+      delay(500);
+      digitalWrite(READY_PIN, HIGH);
+      break;
+    }
+
+    case DOOR_SECURED: {
+      digitalWrite(NETWORK_PIN, HIGH);
+      digitalWrite(FIREBASE_PIN, HIGH);
+      digitalWrite(READY_PIN, HIGH);
+      if (!strcmp(requestFromBigBrother,
+                  RIoTSystem::getInstance().releaseCommand)) {
+        digitalWrite(DOOR_PIN, LOW); // Actual release
+        digitalWrite(NETWORK_PIN, LOW);
+        digitalWrite(FIREBASE_PIN, LOW);
+        digitalWrite(READY_PIN, LOW);
+        while (true) {
+          int bytesRead = SerialPort.readBytesUntil('\n', requestFromBigBrother,
+                                                    maxBufferSize - 1);
+          requestFromBigBrother[bytesRead] = '\0'; // Null-terminate the string
+          if (!strcmp(requestFromBigBrother,
+                      RIoTSystem::getInstance().holdCommand)) {
+            digitalWrite(DOOR_PIN, HIGH);
+            digitalWrite(NETWORK_PIN, HIGH);
+            digitalWrite(FIREBASE_PIN, HIGH);
+            digitalWrite(READY_PIN, HIGH);
+
+            break;
+          }
+        }
+        return true;
+      }
+
+      break;
+    }
+
+    default: {
+      return false;
+      break;
+    }
+    }
+  } else {
+    digitalWrite(NETWORK_PIN, LOW);
+    digitalWrite(FIREBASE_PIN, LOW);
+    if (!strcmp(requestFromBigBrother,
+                RIoTSystem::getInstance().releaseCommand)) {
+      digitalWrite(DOOR_PIN, LOW); // Actual release
+      digitalWrite(READY_PIN, LOW);
+      while (true) {
+        int bytesRead = SerialPort.readBytesUntil('\n', requestFromBigBrother,
+                                                  maxBufferSize - 1);
+        requestFromBigBrother[bytesRead] = '\0'; // Null-terminate the string
+        if (!strcmp(requestFromBigBrother,
+                    RIoTSystem::getInstance().holdCommand)) {
+          digitalWrite(DOOR_PIN, HIGH);
+          digitalWrite(READY_PIN, HIGH);
+          break;
+        }
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
+void RIoTSystem::bigBrotherDoorController(String tagUID) {
+  doorHoldStartTime = millis(); // Record the start time
   if (RIoTSystem::getInstance().SYSTEM == SYS_NORMAL) {
     if (tagUID == "NULL") {
       // Serial.println("No RFID read."); // do not uncomment this -spam
       return;
     }
+
     char riotCardPath[64];
     strcpy(riotCardPath, "riotCards/");
     strcat(riotCardPath, tagUID.c_str());
     FirebaseJson jsonObjectRiotCard;
     FirebaseJson jsonObjectDoor;
-    firestoreGetJson(&jsonObjectRiotCard, riotCardPath);
+    logger(&jsonObjectRiotCard, tagUID);
+    if (firestoreGetJson(&jsonObjectRiotCard, riotCardPath)) {
+      // Serial.println("Card read successfuly")
+    } else {
+      beep(700);
+      return;
+    }
     firestoreGetJson(&jsonObjectDoor, "labData/lab-data");
 
     String dataDoor =
@@ -103,8 +232,15 @@ void RIoTSystem::doorController(String tagUID) {
       String jsonDataRiotCardStatus = getDataFromJsonObject(
           &jsonObjectRiotCard, "fields/riotCardStatus/stringValue");
       if (jsonDataRiotCardStatus == "active") {
-        releaseDoor();
+        digitalWrite(READY_PIN, LOW);
+        beep(200);
+        requestToLittleLister(releaseCommand);
         uploadAllFirestoreTasks(&jsonObjectRiotCard, tagUID.c_str());
+        while (millis() - doorHoldStartTime <= doorHoldDuration) {
+          // Serial.println("waiting to lock...");
+        }
+        requestToLittleLister(holdCommand);
+        digitalWrite(READY_PIN, HIGH);
       } else if (jsonDataRiotCardStatus == "inactive") {
         digitalWrite(NETWORK_PIN, HIGH);
         beep(buzzerWrongDuration);
@@ -121,7 +257,6 @@ void RIoTSystem::doorController(String tagUID) {
     }
 
     case DOOR_UNLOCKED: {
-      releaseDoor();
       Serial.println("RIoT door is already unlocked.");
       break;
     }
@@ -130,7 +265,14 @@ void RIoTSystem::doorController(String tagUID) {
       String userType = getDataFromJsonObject(&jsonObjectRiotCard,
                                               "fields/userType/stringValue");
       if (userType == "admin" || userType == "superadmin") {
-        releaseDoor();
+        digitalWrite(READY_PIN, LOW);
+        beep(200);
+        requestToLittleLister(releaseCommand);
+        while (millis() - doorHoldStartTime <= doorHoldDuration) {
+          Serial.println("waiting to lock...");
+        }
+        requestToLittleLister(holdCommand);
+        digitalWrite(READY_PIN, HIGH);
         Serial.println("Admin pass.");
       } else {
         digitalWrite(NETWORK_PIN, HIGH);
@@ -148,17 +290,31 @@ void RIoTSystem::doorController(String tagUID) {
     }
     }
   } else if (RIoTSystem::getInstance().SYSTEM == SYS_BACKUP) {
+    if (tagUID == "NULL") {
+      // Serial.println("No RFID read."); // do not uncomment this -spam
+      return;
+    }
     const int numKnownTags = sizeof(knownTagUIDs) / sizeof(knownTagUIDs[0]);
     for (int i = 0; i < numKnownTags; i++) {
       if (tagUID == knownTagUIDs[i]) {
         // Match found
+        digitalWrite(READY_PIN, LOW);
         digitalWrite(NETWORK_PIN, LOW);
         digitalWrite(FIREBASE_PIN, LOW);
-        releaseDoor();
+        beep(200);
+        requestToLittleLister(releaseCommand);
+        while (millis() - doorHoldStartTime <= doorHoldDuration) {
+          Serial.println("waiting to lock...");
+        }
+        requestToLittleLister(holdCommand);
+        digitalWrite(READY_PIN, HIGH);
         Serial.println("CARD READ VIA BACKUP");
         break;
       }
     }
+    beep(700);
+
+    return;
   }
 }
 
@@ -172,25 +328,29 @@ bool RIoTSystem::systemMaintenance() {
     localtime_r(&now, &timeinfo);
 
     // Get current time
-    if (!getLocalTime(&timeinfo)) {
+    if (!getLocalTime(&timeinfo, 1000)) {
       Serial.println("Failed to obtain time");
       return false;
     }
     // Check if it's between maintenanceLower Time and maintenanceUpper Time
-    if (timeinfo.tm_hour == maintenanceLowerHour &&
-        timeinfo.tm_min >= maintenanceLowerMinute &&
-        timeinfo.tm_hour == maintenanceUpperHour &&
-        timeinfo.tm_min <= maintenanceUpperMinute) {
+    if ((timeinfo.tm_hour > maintenanceLowerHour ||
+         (timeinfo.tm_hour == maintenanceLowerHour &&
+          timeinfo.tm_min >= maintenanceLowerMinute)) &&
+        (timeinfo.tm_hour < maintenanceUpperHour ||
+         (timeinfo.tm_hour == maintenanceUpperHour &&
+          timeinfo.tm_min <= maintenanceUpperMinute))) {
       if (!taskExecuted) {
         Serial.println("SYSTEM MAINTENANCE!");
         // Serial.println(ESP.getFreeHeap());
+        createLogDocument(&timeinfo);
+        Serial.println("25% ---------- New Log document is created.");
         digitalWrite(NETWORK_PIN, HIGH);
         digitalWrite(READY_PIN, LOW);
         updateRiotCardStatus();
-        Serial.println("33% ---------- RIoT Card status are updated.");
+        Serial.println("50% ---------- RIoT Card status are updated.");
         digitalWrite(FIREBASE_PIN, HIGH);
         resetInOrOutStatus();
-        Serial.println("67% ---------- InOrOut status are updated.");
+        Serial.println("75% ---------- InOrOut status are updated.");
         digitalWrite(READY_PIN, HIGH);
         updateNumberOfPeople();
         Serial.println(

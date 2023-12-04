@@ -52,7 +52,8 @@ inline bool firestoreUpdateField(FirebaseJson *jsonObject,
  *
  * @brief Get data from FirebaseJson object for a given fieldPath.
  * @param jsonObject FirebaseJson object to retrieve data.
- * @param fieldPath Path to the Firestore element to be returned.
+ * @param fieldPath Path to the Firestore element to be returned
+ * e.g. "fields/id/stringValue".
  * @return FirebaseJsonData as String.
  *
  */
@@ -80,7 +81,6 @@ void resetInOrOutStatus();
 bool updateNumberOfPeople();
 
 /**
- *
  * @brief Iterates through the given JsonObject and works on the data with given
  * function.
  * @param jsonObject FirebaseJson object to be iterated.
@@ -102,8 +102,7 @@ String firebaseJsonIterator(FirebaseJson *jsonObject, String pathToArray,
                             void (*func)(const char *, const char *, int *));
 
 /**
- * Upload and complete all FirebaseFirestore related tasks
- *
+ * @brief Upload and complete all FirebaseFirestore related tasks
  * @param jsonObjectRiotCard RIoT card's json object.
  * @param riotCardID RIoT card id.
  * @return Boolean value, indicates the success of the operation.
@@ -111,5 +110,23 @@ String firebaseJsonIterator(FirebaseJson *jsonObject, String pathToArray,
  */
 bool uploadAllFirestoreTasks(FirebaseJson *jsonObjectRiotCard,
                              const char *riotCardID);
+
+/**
+ * @brief Log data to the server.
+ * @param jsonObjectRiotCard RIoT card's json object.
+ * @param updateField The item to be updated, e.g.
+ * "tagUID".
+ * @return Boolean value, indicates the success of the operation.
+ *
+ */
+bool logger(FirebaseJson *jsonObjectRiotCard, String updateField);
+
+/**
+ * @brief Initialize the log document to the Firebase Firestore.
+ * @param timeinfo Time information.
+ * @return Boolean value, indicates the success of the operation.
+ *
+ */
+bool createLogDocument(tm *timeinfo);
 
 #endif

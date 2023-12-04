@@ -1,6 +1,7 @@
 #ifndef RIOTSYSTEM_H_
 #define RIOTSYSTEM_H_
 
+#include <Preferences.h>
 #include <WString.h>
 #include <mutex>
 
@@ -26,6 +27,9 @@ private:
 
   int buzzerWrongDuration;
 
+  const char *releaseCommand;
+  const char *holdCommand;
+
   void beep(int duration);
 
   RIoTSystem() {
@@ -43,6 +47,9 @@ private:
     startTimer = true;
     resetCounter = 0;
     resetThreshold = 5;
+    releaseCommand = "release";
+    holdCommand = "hold";
+    doorHoldDuration = 3 * 1000; // t seconds in milliseconds
   } // Private constructor prevents external instantiation
   RIoTSystem(const RIoTSystem &) = delete;
   RIoTSystem &operator=(const RIoTSystem &) = delete;
@@ -58,7 +65,10 @@ public:
     DOOR_SECURED,
     DOOR_DEFAULT,
   };
+  Preferences preferences;
   static SYSTEM_STATUS SYSTEM;
+  int doorHoldDuration;
+  unsigned long doorHoldStartTime;
 
   DOOR_STATUS hashit(String string);
 
@@ -96,21 +106,34 @@ public:
 
   /**
    *
-   * @brief Releases the door and handles to communication between Büyük
-   * Ağabey (Big Brother) and Küçük Kızkardeş (Little Sister).
-   * @return None.
+   * @brief Handles to communication between BüyükAğabey
+   * (BigBrother) and KüçükKızkardeş (LittleSister).
+   * @param request Request message to send.
+   * @return Boolean value, indicates the success of the operation.
    *
    */
-  void releaseDoor();
+  void requestToLittleLister(const char *request);
 
   /**
    *
-   * @brief Controls the door depending on the coniditon of the virtual lock
-   * and acts accordingly to userType, riotCardStatus, and riotCardID.
+   * @brief Controls the door depending on the condition of the virtual lock
+   * and acts accordingly to doorStatus and requestFromBigBrother for
+   * LittleSister.
+   * @return Boolean value, indicates the success of the operation.
+   *
+   */
+  bool littleSisterDoorController();
+
+  /**
+   *
+   * @brief Controls the door depending on the condition of the virtual lock
+   * and acts accordingly to userType, riotCardStatus, and riotCardID for
+   * BigBrother.
+   * @param tagUID The tagUID to compare.
    * @return None.
    *
    */
-  void doorController(String tagUID);
+  void bigBrotherDoorController(String tagUID);
 
   /**
    *

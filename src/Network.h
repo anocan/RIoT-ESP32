@@ -21,7 +21,7 @@ public:
     ssidWPA2 = WIFI_SSID_WPA2;
     password = WIFI_PASSWORD;
     wifiStartTime = 0;
-    wifiTimerThreshold = 2 * 60 * 1000; // 2 minutes in milliseconds
+    wifiTimerThreshold = 2 * 60 * 1000; // t minutes in milliseconds
     ntpServer = "pool.ntp.org";
     gmtOffset_sec = 3 * 3600; // +3 UTC in seconds
     daylightOffset_sec = 0;

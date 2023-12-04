@@ -1,4 +1,9 @@
 {
   "editor.defaultFormatter": "xaver.clang-format",
-  "C_Cpp.errorSquiggles": "disabled"
+  "C_Cpp.errorSquiggles": "disabled",
+  "files.associations": {
+    "*.jsx": "javascriptreact",
+    "*.tcc": "cpp",
+    "chrono": "cpp"
+  }
 }

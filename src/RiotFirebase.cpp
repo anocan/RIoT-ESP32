@@ -14,8 +14,8 @@ bool initFirebase() {
   auth.user.email = USER_EMAIL;
   auth.user.password = USER_PASSWORD;
   Firebase.reconnectNetwork(true);
-  fbdo.setBSSLBufferSize(4096, 1024);
-  fbdo.setResponseSize(2048);
+  fbdo.setBSSLBufferSize(1024 * 8, 1024 * 6);
+  fbdo.setResponseSize(1024 * 4);
   Firebase.begin(&config, &auth);
   while (!Firebase.ready()) {
     if (RIoTSystem::getInstance().SYSTEM == RIoTSystem::SYS_NORMAL) {
@@ -73,7 +73,7 @@ inline bool firestoreUpdateField(FirebaseJson *jsonObject,
           return true;
           // Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
         } else {
-          Serial.println("Error Patching Document!");
+          Serial.println(fbdo.errorReason());
           return false;
         }
       }
@@ -113,7 +113,12 @@ void setAllInOrOutToOut(const char *riotCardID, const char *updateValue,
   char documentPath[64];
   sprintf(documentPath, "riotCards/%s", riotCardID);
 
-  firestoreGetJson(&jsonRiotCard, documentPath);
+  if (firestoreGetJson(&jsonRiotCard, documentPath)) {
+
+  } else {
+    return;
+  }
+
   jsonRiotCard.set("fields/inOrOut/stringValue", updateValue);
 
   firestoreUpdateField(&jsonRiotCard, documentPath,
@@ -125,8 +130,11 @@ void compareAndUpdateRiotCard(const char *riotCardID,
   FirebaseJson jsonRiotCard;
   char documentPath[64];
   sprintf(documentPath, "riotCards/%s", riotCardID);
+  if (firestoreGetJson(&jsonRiotCard, documentPath)) {
+  } else {
+    return;
+  }
 
-  firestoreGetJson(&jsonRiotCard, documentPath);
   String userType =
       getDataFromJsonObject(&jsonRiotCard, "fields/userType/stringValue");
   if (userType != comparisonValue) {
@@ -210,10 +218,16 @@ String getNoOfPeople() {
 
 bool updateNumberOfPeople() {
   FirebaseJson jsonObjectLabData;
-  firestoreGetJson(&jsonObjectLabData, "labData/lab-data");
-
-  firestoreUpdateField(&jsonObjectLabData, "labData/lab-data",
-                       "fields/labPeople/stringValue", getNoOfPeople().c_str());
+  if (firestoreGetJson(&jsonObjectLabData, "labData/lab-data")) {
+  } else {
+    return false;
+  }
+  if (firestoreUpdateField(&jsonObjectLabData, "labData/lab-data",
+                           "fields/labPeople/stringValue",
+                           getNoOfPeople().c_str())) {
+  } else {
+    return false;
+  }
 
   return true;
 }
@@ -232,7 +246,11 @@ bool uploadAllFirestoreTasks(FirebaseJson *jsonObjectRiotCard,
   strcpy(userIDPath, "users/");
   strcat(userIDPath, userID.c_str());
   FirebaseJson jsonObjectUser;
-  firestoreGetJson(&jsonObjectUser, userIDPath);
+  if (firestoreGetJson(&jsonObjectUser, userIDPath)) {
+
+  } else {
+    return false;
+  }
 
   firestoreUpdateField(&jsonObjectUser, userIDPath,
                        "fields/riotCard/mapValue/fields/inOrOut/stringValue",
@@ -303,4 +321,75 @@ void resetInOrOutStatus() {
       firstPage = false;
     }
   }
+}
+
+bool logger(FirebaseJson *jsonObjectRiotCard, String updateField) {
+  time_t now;
+  time(&now);
+
+  struct tm timeinfo;
+  // char formattedTime[30]; // Buffer to hold the formatted time
+
+  localtime_r(&now, &timeinfo);
+  if (!getLocalTime(&timeinfo, 1000)) {
+    Serial.println("Failed to obtain time");
+    return false;
+  }
+  char formattedDate[32];
+  char documentPath[64];
+  char formattedTime[32];
+  char fieldPath[64];
+  char updateMask[64];
+  char timestamp[20];
+  strftime(formattedDate, sizeof(formattedDate), "%d.%m.%Y", &timeinfo);
+
+  sprintf(documentPath, "logs/%s", formattedDate);
+
+  strftime(formattedTime, sizeof(formattedTime), "%H_%M_%S", &timeinfo);
+  sprintf(fieldPath, "fields/_%s/mapValue/fields/tagUID/stringValue",
+          formattedTime);
+  sprintf(updateMask, "_%s", formattedTime);
+  jsonObjectRiotCard->set(fieldPath, updateField);
+  Serial.println(jsonObjectRiotCard->toString(Serial, true));
+  Serial.println(updateMask);
+  if (Firebase.Firestore.patchDocument(&fbdo, FIREBASE_PROJECT_ID, "",
+                                       documentPath, jsonObjectRiotCard->raw(),
+                                       updateMask)) {
+
+    Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
+    return true;
+  } else {
+    Serial.println(fbdo.errorReason());
+    return false;
+  }
+  return false;
+}
+
+bool createLogDocument(tm *timeinfo) {
+  int logID = RIoTSystem::getInstance().preferences.getULong("logID", -1);
+  FirebaseJson jsonObject;
+  char formattedDate[32];
+  char documentPath[64];
+  char formattedTime[32];
+  char updateMask[64];
+  strftime(formattedDate, sizeof(formattedDate), "%d.%m.%Y", timeinfo);
+
+  sprintf(documentPath, "logs/%s", formattedDate);
+
+  sprintf(updateMask, "logID", formattedTime);
+  jsonObject.set("fields/logID/integerValue", logID);
+  Serial.println(jsonObject.toString(Serial, true));
+  Serial.println(updateMask);
+  if (Firebase.Firestore.patchDocument(&fbdo, FIREBASE_PROJECT_ID, "",
+                                       documentPath, jsonObject.raw(),
+                                       updateMask)) {
+    Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
+    logID++;
+    RIoTSystem::getInstance().preferences.putULong("logID", logID);
+    return true;
+  } else {
+    Serial.println(fbdo.errorReason());
+    return false;
+  }
+  return false;
 }

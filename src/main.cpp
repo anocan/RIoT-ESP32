@@ -10,7 +10,6 @@ RIoTSystem &riotSystem = RIoTSystem::getInstance();
 // RIoTFirebase riotFirebase;
 
 void setup() {
-
   riotSystem.setUpPins();
   riotNetwork.initWiFi();
   initFirebase(); // riotFirebase.initFirebase();
@@ -18,6 +17,6 @@ void setup() {
 }
 
 void loop() {
+  riotSystem.bigBrotherDoorController(riotRfid.readRFID());
   riotSystem.systemMaintenance();
-  riotSystem.doorController(riotRfid.readRFID());
 }
