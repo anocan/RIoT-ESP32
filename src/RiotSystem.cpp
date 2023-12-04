@@ -94,14 +94,9 @@ bool RIoTSystem::littleSisterDoorController() {
     Serial.println("unssuccess");
     return false;
   }
-  int maxBufferSize = 128;
-  char requestFromBigBrother[maxBufferSize];
   Serial.print("Received: ");
-  Serial.println(SerialPort.readStringUntil('X'));
+  String requestFromBigBrother = SerialPort.readStringUntil('|');
   if (WiFi.status() == WL_CONNECTED && Firebase.ready() && 0) {
-    int bytesRead = SerialPort.readBytesUntil('\n', requestFromBigBrother,
-                                              maxBufferSize - 1);
-    requestFromBigBrother[bytesRead] = '\0'; // Null-terminate the string
     // const char *requestFromBigBrother = SerialPort.read();
     Serial.print("Received: ");
     Serial.println(requestFromBigBrother);
@@ -114,15 +109,13 @@ bool RIoTSystem::littleSisterDoorController() {
     case DOOR_LOCKED: {
       digitalWrite(NETWORK_PIN, LOW);
       digitalWrite(FIREBASE_PIN, LOW);
-      if (!strcmp(requestFromBigBrother,
+      if (!strcmp(requestFromBigBrother.c_str(),
                   RIoTSystem::getInstance().releaseCommand)) {
         digitalWrite(DOOR_PIN, LOW); // Actual release
         digitalWrite(READY_PIN, LOW);
         while (true) {
-          int bytesRead = SerialPort.readBytesUntil('\n', requestFromBigBrother,
-                                                    maxBufferSize - 1);
-          requestFromBigBrother[bytesRead] = '\0'; // Null-terminate the string
-          if (!strcmp(requestFromBigBrother,
+          requestFromBigBrother = SerialPort.readStringUntil('|');
+          if (!strcmp(requestFromBigBrother.c_str(),
                       RIoTSystem::getInstance().holdCommand)) {
             digitalWrite(DOOR_PIN, HIGH);
             digitalWrite(READY_PIN, HIGH);
@@ -150,17 +143,15 @@ bool RIoTSystem::littleSisterDoorController() {
       digitalWrite(NETWORK_PIN, HIGH);
       digitalWrite(FIREBASE_PIN, HIGH);
       digitalWrite(READY_PIN, HIGH);
-      if (!strcmp(requestFromBigBrother,
+      if (!strcmp(requestFromBigBrother.c_str(),
                   RIoTSystem::getInstance().releaseCommand)) {
         digitalWrite(DOOR_PIN, LOW); // Actual release
         digitalWrite(NETWORK_PIN, LOW);
         digitalWrite(FIREBASE_PIN, LOW);
         digitalWrite(READY_PIN, LOW);
         while (true) {
-          int bytesRead = SerialPort.readBytesUntil('\n', requestFromBigBrother,
-                                                    maxBufferSize - 1);
-          requestFromBigBrother[bytesRead] = '\0'; // Null-terminate the string
-          if (!strcmp(requestFromBigBrother,
+          requestFromBigBrother = SerialPort.readStringUntil('|');
+          if (!strcmp(requestFromBigBrother.c_str(),
                       RIoTSystem::getInstance().holdCommand)) {
             digitalWrite(DOOR_PIN, HIGH);
             digitalWrite(NETWORK_PIN, HIGH);
@@ -184,15 +175,13 @@ bool RIoTSystem::littleSisterDoorController() {
   } else {
     digitalWrite(NETWORK_PIN, LOW);
     digitalWrite(FIREBASE_PIN, LOW);
-    if (!strcmp(requestFromBigBrother,
+    if (!strcmp(requestFromBigBrother.c_str(),
                 RIoTSystem::getInstance().releaseCommand)) {
       digitalWrite(DOOR_PIN, LOW); // Actual release
       digitalWrite(READY_PIN, LOW);
       while (true) {
-        int bytesRead = SerialPort.readBytesUntil('\n', requestFromBigBrother,
-                                                  maxBufferSize - 1);
-        requestFromBigBrother[bytesRead] = '\0'; // Null-terminate the string
-        if (!strcmp(requestFromBigBrother,
+        requestFromBigBrother = SerialPort.readStringUntil('|');
+        if (!strcmp(requestFromBigBrother.c_str(),
                     RIoTSystem::getInstance().holdCommand)) {
           digitalWrite(DOOR_PIN, HIGH);
           digitalWrite(READY_PIN, HIGH);
