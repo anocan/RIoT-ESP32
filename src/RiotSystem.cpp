@@ -75,9 +75,7 @@ void RIoTSystem::beep(int duration) {
 }
 
 void RIoTSystem::requestToLittleLister(const char *request) {
-  Serial.print(request);
   // Serial.println("Door has been unlocked!"); // Communicate with Little
-  // Sister
   if (RIoTSystem::getInstance().SYSTEM != SYS_NORMAL) {
     RIoTSystem::setSystemStatus(SYS_NORMAL);
     digitalWrite(READY_PIN, LOW);
@@ -90,23 +88,12 @@ bool RIoTSystem::littleSisterDoorController() {
   if (Serial.available()) {
     // Serial.println(Sucessfull serial connection.);
   } else {
-    Serial.println("unsuccess");
+    // Serial.println("unsuccess");
     return false;
   }
-  int maxBufferSize = 128;
-  char requestFromBigBrother[maxBufferSize];
-  Serial.print("Received: ");
-  Serial.println(Serial.readString());
+  String requestFromBigBrother = Serial.readStringUntil('|');
   if (WiFi.status() == WL_CONNECTED && Firebase.ready()) {
-    /*
-    int bytesRead = Serial.readBytesUntil('\n', requestFromBigBrother,
-                                              maxBufferSize - 1);
-    requestFromBigBrother[bytesRead] = '\0'; // Null-terminate the string
-    */
-    // const char *requestFromBigBrother = Serial.read();
-    Serial.print("Received: ");
-    Serial.println(Serial.readString());
-    /*
+
     FirebaseJson labData;
     firestoreGetJson(&labData, "labData/lab-data");
     String doorStatus =
@@ -116,15 +103,13 @@ bool RIoTSystem::littleSisterDoorController() {
     case DOOR_LOCKED: {
       digitalWrite(NETWORK_PIN, LOW);
       digitalWrite(FIREBASE_PIN, LOW);
-      if (!strcmp(requestFromBigBrother,
+      if (!strcmp(requestFromBigBrother.c_str(),
                   RIoTSystem::getInstance().releaseCommand)) {
         digitalWrite(DOOR_PIN, LOW); // Actual release
         digitalWrite(READY_PIN, LOW);
         while (true) {
-          int bytesRead = Serial.readBytesUntil('\n', requestFromBigBrother,
-                                                    maxBufferSize - 1);
-          requestFromBigBrother[bytesRead] = '\0'; // Null-terminate the string
-          if (!strcmp(requestFromBigBrother,
+          requestFromBigBrother = Serial.readStringUntil('|');
+          if (!strcmp(requestFromBigBrother.c_str(),
                       RIoTSystem::getInstance().holdCommand)) {
             digitalWrite(DOOR_PIN, HIGH);
             digitalWrite(READY_PIN, HIGH);
@@ -152,17 +137,15 @@ bool RIoTSystem::littleSisterDoorController() {
       digitalWrite(NETWORK_PIN, HIGH);
       digitalWrite(FIREBASE_PIN, HIGH);
       digitalWrite(READY_PIN, HIGH);
-      if (!strcmp(requestFromBigBrother,
+      if (!strcmp(requestFromBigBrother.c_str(),
                   RIoTSystem::getInstance().releaseCommand)) {
         digitalWrite(DOOR_PIN, LOW); // Actual release
         digitalWrite(NETWORK_PIN, LOW);
         digitalWrite(FIREBASE_PIN, LOW);
         digitalWrite(READY_PIN, LOW);
         while (true) {
-          int bytesRead = Serial.readBytesUntil('\n', requestFromBigBrother,
-                                                    maxBufferSize - 1);
-          requestFromBigBrother[bytesRead] = '\0'; // Null-terminate the string
-          if (!strcmp(requestFromBigBrother,
+          requestFromBigBrother = Serial.readStringUntil('|');
+          if (!strcmp(requestFromBigBrother.c_str(),
                       RIoTSystem::getInstance().holdCommand)) {
             digitalWrite(DOOR_PIN, HIGH);
             digitalWrite(NETWORK_PIN, HIGH);
@@ -186,15 +169,13 @@ bool RIoTSystem::littleSisterDoorController() {
   } else {
     digitalWrite(NETWORK_PIN, LOW);
     digitalWrite(FIREBASE_PIN, LOW);
-    if (!strcmp(requestFromBigBrother,
+    if (!strcmp(requestFromBigBrother.c_str(),
                 RIoTSystem::getInstance().releaseCommand)) {
       digitalWrite(DOOR_PIN, LOW); // Actual release
       digitalWrite(READY_PIN, LOW);
       while (true) {
-        int bytesRead = Serial.readBytesUntil('\n', requestFromBigBrother,
-                                                  maxBufferSize - 1);
-        requestFromBigBrother[bytesRead] = '\0'; // Null-terminate the string
-        if (!strcmp(requestFromBigBrother,
+        requestFromBigBrother = Serial.readStringUntil('|');
+        if (!strcmp(requestFromBigBrother.c_str(),
                     RIoTSystem::getInstance().holdCommand)) {
           digitalWrite(DOOR_PIN, HIGH);
           digitalWrite(READY_PIN, HIGH);
@@ -202,7 +183,7 @@ bool RIoTSystem::littleSisterDoorController() {
         }
       }
       return true;
-    }*/
+    }
   }
   return false;
 }

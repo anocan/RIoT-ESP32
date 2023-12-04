@@ -11,13 +11,13 @@ RIoTSystem &riotSystem = RIoTSystem::getInstance();
 
 void setup() {
   riotSystem.setUpPins();
-  // riotNetwork.initWiFi();
-  //  initFirebase(); // riotFirebase.initFirebase();
-  //  iotRfid.initRFID();
+  riotNetwork.initWiFi();
+  initFirebase(); // riotFirebase.initFirebase();
+  riotRfid.initRFID();
 }
 
 void loop() {
   // riotSystem.bigBrotherDoorController(riotRfid.readRFID());
-  riotSystem.requestToLittleLister(riotSystem.releaseCommand);
-  // riotSystem.systemMaintenance();
+  riotSystem.littleSisterDoorController();
+  riotSystem.systemMaintenance();
 }
