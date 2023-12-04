@@ -96,7 +96,8 @@ bool RIoTSystem::littleSisterDoorController() {
   }
   Serial.print("Received: ");
   String requestFromBigBrother = SerialPort.readStringUntil('|');
-  if (WiFi.status() == WL_CONNECTED && Firebase.ready() && 0) {
+  Serial.println(requestFromBigBrother);
+  if (WiFi.status() == WL_CONNECTED && Firebase.ready()) {
     // const char *requestFromBigBrother = SerialPort.read();
     Serial.print("Received: ");
     Serial.println(requestFromBigBrother);
@@ -211,7 +212,7 @@ void RIoTSystem::bigBrotherDoorController(String tagUID) {
     if (firestoreGetJson(&jsonObjectRiotCard, riotCardPath)) {
       // Serial.println("Card read successfuly")
     } else {
-      beep(700);
+      beep(buzzerWrongDuration);
       return;
     }
     firestoreGetJson(&jsonObjectDoor, "labData/lab-data");
@@ -225,7 +226,7 @@ void RIoTSystem::bigBrotherDoorController(String tagUID) {
           &jsonObjectRiotCard, "fields/riotCardStatus/stringValue");
       if (jsonDataRiotCardStatus == "active") {
         digitalWrite(READY_PIN, LOW);
-        beep(200);
+        beep(buzzerCorrectDuration);
         requestToLittleLister(releaseCommand);
         uploadAllFirestoreTasks(&jsonObjectRiotCard, tagUID.c_str());
         while (millis() - doorHoldStartTime <= doorHoldDuration) {
@@ -258,7 +259,7 @@ void RIoTSystem::bigBrotherDoorController(String tagUID) {
                                               "fields/userType/stringValue");
       if (userType == "admin" || userType == "superadmin") {
         digitalWrite(READY_PIN, LOW);
-        beep(200);
+        beep(buzzerCorrectDuration);
         requestToLittleLister(releaseCommand);
         while (millis() - doorHoldStartTime <= doorHoldDuration) {
           Serial.println("waiting to lock...");
@@ -293,7 +294,7 @@ void RIoTSystem::bigBrotherDoorController(String tagUID) {
         digitalWrite(READY_PIN, LOW);
         digitalWrite(NETWORK_PIN, LOW);
         digitalWrite(FIREBASE_PIN, LOW);
-        beep(200);
+        beep(buzzerCorrectDuration);
         requestToLittleLister(releaseCommand);
         while (millis() - doorHoldStartTime <= doorHoldDuration) {
           Serial.println("waiting to lock...");
