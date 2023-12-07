@@ -13,9 +13,10 @@
 // RIoT System
 #define INTERRUPT_PIN 34
 #define MONITOR_SPEED 115200
+#define COMM_SPEED 9600
 #define BUZZER_PIN 32
 #define DOOR_PIN 4
-#define RX_PIN RX
-#define TX_PIN TX
+#define RX_PIN 16
+#define TX_PIN 17
 
 #endif
