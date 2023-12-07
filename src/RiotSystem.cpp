@@ -124,6 +124,7 @@ bool RIoTSystem::littleSisterDoorController() {
 
     switch (hashit(doorStatus)) {
     case DOOR_LOCKED: {
+      digitalWrite(DOOR_PIN, HIGH);
       digitalWrite(NETWORK_PIN, LOW);
       digitalWrite(FIREBASE_PIN, LOW);
       if (requestFromBigBrother == RIoTSystem::getInstance().releaseCommand) {
@@ -156,6 +157,7 @@ bool RIoTSystem::littleSisterDoorController() {
     }
 
     case DOOR_SECURED: {
+      digitalWrite(DOOR_PIN, HIGH);
       digitalWrite(NETWORK_PIN, HIGH);
       digitalWrite(FIREBASE_PIN, HIGH);
       digitalWrite(READY_PIN, HIGH);
