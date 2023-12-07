@@ -378,12 +378,12 @@ bool createLogDocument(tm *timeinfo) {
 
   sprintf(updateMask, "logID", formattedTime);
   jsonObject.set("fields/logID/integerValue", logID);
-  Serial.println(jsonObject.toString(Serial, true));
-  Serial.println(updateMask);
+  // Serial.println(jsonObject.toString(Serial, true));
+  // Serial.println(updateMask);
   if (Firebase.Firestore.patchDocument(&fbdo, FIREBASE_PROJECT_ID, "",
                                        documentPath, jsonObject.raw(),
                                        updateMask)) {
-    Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
+    // Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
     logID++;
     RIoTSystem::getInstance().preferences.putULong("logID", logID);
     return true;

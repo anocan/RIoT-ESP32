@@ -99,14 +99,14 @@ bool RIoTSystem::littleSisterDoorController() {
     // Serial.println("no comm");
     return false;
   }
-  Serial.print("Received: ");
+  // Serial.print("Received: ");
   String requestFromBigBrother = SerialPort.readStringUntil('|');
   delay(5);
-  Serial.println(requestFromBigBrother);
+  // Serial.println(requestFromBigBrother);
   if (WiFi.status() == WL_CONNECTED && Firebase.ready()) {
     // const char *requestFromBigBrother = SerialPort.read();
-    Serial.print("Received: ");
-    Serial.println(requestFromBigBrother);
+    // Serial.print("Received: ");
+    // Serial.println(requestFromBigBrother);
     FirebaseJson labData;
     firestoreGetJson(&labData, "labData/lab-data");
     String doorStatus =
@@ -265,6 +265,7 @@ void RIoTSystem::bigBrotherDoorController(String tagUID) {
         digitalWrite(READY_PIN, LOW);
         beep(buzzerCorrectDuration);
         requestToLittleLister(releaseCommand);
+        uploadAllFirestoreTasks(&jsonObjectRiotCard, tagUID.c_str());
         while (millis() - doorHoldStartTime <= doorHoldDuration) {
           Serial.println("waiting to lock...");
         }
