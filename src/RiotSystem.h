@@ -48,6 +48,8 @@ private:
     resetThreshold = 5;
     releaseCommand = "release";
     holdCommand = "hold";
+    releaseCommandBackup = "releaseBackup";
+    holdCommandBackup = "commandBackup";
     doorHoldDuration = 2 * 1000; // t seconds in milliseconds
   } // Private constructor prevents external instantiation
   RIoTSystem(const RIoTSystem &) = delete;
@@ -70,6 +72,8 @@ public:
   unsigned long doorHoldStartTime;
   const char *releaseCommand;
   const char *holdCommand;
+  const char *releaseCommandBackup;
+  const char *holdCommandBackup;
 
   DOOR_STATUS hashit(String string);
 
