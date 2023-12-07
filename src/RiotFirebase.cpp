@@ -110,7 +110,10 @@ void compareAndReturn(const char *value1, const char *value2, int *count) {
 void setAllInOrOutToOut(const char *riotCardID, const char *updateValue,
                         int *count) {
   FirebaseJson jsonRiotCard;
+  FirebaseJson jsonUser;
+  String uID;
   char documentPath[64];
+  char userDocumentPath[128];
   sprintf(documentPath, "riotCards/%s", riotCardID);
 
   if (firestoreGetJson(&jsonRiotCard, documentPath)) {
@@ -123,6 +126,22 @@ void setAllInOrOutToOut(const char *riotCardID, const char *updateValue,
 
   firestoreUpdateField(&jsonRiotCard, documentPath,
                        "fields/inOrOut/stringValue", updateValue);
+
+  uID = getDataFromJsonObject(&jsonRiotCard, "fields/id/stringValue");
+
+  sprintf(userDocumentPath, "users/%s", uID.c_str());
+
+  if (firestoreGetJson(&jsonUser, userDocumentPath)) {
+
+  } else {
+    return;
+  }
+  jsonUser.set("fields/riotCard/mapValue/fields/inOrOut/stringValue",
+               updateValue);
+
+  firestoreUpdateField(&jsonUser, userDocumentPath,
+                       "fields/riotCard/mapValue/fields/inOrOut/stringValue",
+                       "out");
 }
 
 void compareAndUpdateRiotCard(const char *riotCardID,
@@ -240,7 +259,7 @@ bool uploadAllFirestoreTasks(FirebaseJson *jsonObjectRiotCard,
   strcpy(riotCardPath, "riotCards/");
   strcat(riotCardPath, riotCardID);
   firestoreUpdateField(jsonObjectRiotCard, riotCardPath,
-                       "fields/inOrOut/stringValue", "in");
+                       "fields/inOrOut/stringValue", "out");
 
   char userIDPath[64];
   strcpy(userIDPath, "users/");
@@ -254,7 +273,7 @@ bool uploadAllFirestoreTasks(FirebaseJson *jsonObjectRiotCard,
 
   firestoreUpdateField(&jsonObjectUser, userIDPath,
                        "fields/riotCard/mapValue/fields/inOrOut/stringValue",
-                       "in");
+                       "out");
 
   updateNumberOfPeople();
 
@@ -351,7 +370,7 @@ bool logger(FirebaseJson *jsonObjectRiotCard, String updateField) {
   sprintf(updateMask, "_%s", formattedTime);
   jsonObjectRiotCard->set(fieldPath, updateField);
   // Serial.println(jsonObjectRiotCard->toString(Serial, true));
-  Serial.println(updateMask);
+  // Serial.println(updateMask);
   if (Firebase.Firestore.patchDocument(&fbdo, FIREBASE_PROJECT_ID, "",
                                        documentPath, jsonObjectRiotCard->raw(),
                                        updateMask)) {
