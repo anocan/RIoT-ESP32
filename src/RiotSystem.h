@@ -48,7 +48,7 @@ private:
     resetThreshold = 5;
     releaseCommand = "release|";
     holdCommand = "hold|";
-    doorHoldDuration = 1 * 1000; // t seconds in milliseconds
+    doorHoldDuration = 2 * 1000; // t seconds in milliseconds
   } // Private constructor prevents external instantiation
   RIoTSystem(const RIoTSystem &) = delete;
   RIoTSystem &operator=(const RIoTSystem &) = delete;

@@ -38,6 +38,7 @@ void RIoTSystem::setUpPins() {
   SerialPort.begin(MONITOR_SPEED, SERIAL_8N1, RX_PIN,
                    TX_PIN); // pins 16 rx2, 17 tx2, MONITOR_SPEED bps, 8 bits no
                             // parity 1 stop bit
+  delay(1000);
   attachInterrupt(INTERRUPT_PIN, ISR_function, RISING);
   pinMode(NETWORK_PIN, OUTPUT);
   pinMode(FIREBASE_PIN, OUTPUT);
