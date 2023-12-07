@@ -35,7 +35,7 @@ HardwareSerial SerialPort(2); // use uart2
 void RIoTSystem::setUpPins() {
   preferences.begin("RIoT", false);
   Serial.begin(MONITOR_SPEED);
-  SerialPort.begin(MONITOR_SPEED, SERIAL_8N1, RX_PIN,
+  SerialPort.begin(COMM_SPEED, SERIAL_8N1, RX_PIN,
                    TX_PIN); // pins 16 rx2, 17 tx2, MONITOR_SPEED bps, 8 bits no
                             // parity 1 stop bit
   delay(1000);
@@ -92,11 +92,12 @@ bool RIoTSystem::littleSisterDoorController() {
   if (SerialPort.available()) {
     // Serial.println(Sucessfull serial connection.);
   } else {
-    Serial.println("unssuccess");
+    // Serial.println("no comm");
     return false;
   }
   Serial.print("Received: ");
   String requestFromBigBrother = SerialPort.readStringUntil('|');
+  delay(5);
   Serial.println(requestFromBigBrother);
   if (WiFi.status() == WL_CONNECTED && Firebase.ready()) {
     // const char *requestFromBigBrother = SerialPort.read();
@@ -111,14 +112,13 @@ bool RIoTSystem::littleSisterDoorController() {
     case DOOR_LOCKED: {
       digitalWrite(NETWORK_PIN, LOW);
       digitalWrite(FIREBASE_PIN, LOW);
-      if (!strcmp(requestFromBigBrother.c_str(),
-                  RIoTSystem::getInstance().releaseCommand)) {
+      if (requestFromBigBrother == RIoTSystem::getInstance().releaseCommand) {
         digitalWrite(DOOR_PIN, LOW); // Actual release
         digitalWrite(READY_PIN, LOW);
         while (true) {
           requestFromBigBrother = SerialPort.readStringUntil('|');
-          if (!strcmp(requestFromBigBrother.c_str(),
-                      RIoTSystem::getInstance().holdCommand)) {
+          delay(5);
+          if (requestFromBigBrother == RIoTSystem::getInstance().holdCommand) {
             digitalWrite(DOOR_PIN, HIGH);
             digitalWrite(READY_PIN, HIGH);
 
