@@ -95,6 +95,7 @@ bool RIoTSystem::littleSisterDoorController() {
     return false;
   }
   String requestFromBigBrother = SerialPort.readStringUntil('|');
+  Serial.println(requestFromBigBrother);
   delay(5);
   if (WiFi.status() == WL_CONNECTED && Firebase.ready()) {
 
@@ -108,6 +109,7 @@ bool RIoTSystem::littleSisterDoorController() {
       digitalWrite(NETWORK_PIN, LOW);
       digitalWrite(FIREBASE_PIN, LOW);
       if (requestFromBigBrother == RIoTSystem::getInstance().releaseCommand) {
+        Serial.println("a");
         digitalWrite(DOOR_PIN, LOW); // Actual release
         digitalWrite(READY_PIN, LOW);
         while (true) {
