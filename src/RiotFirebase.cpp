@@ -356,7 +356,7 @@ bool logger(FirebaseJson *jsonObjectRiotCard, String updateField) {
                                        documentPath, jsonObjectRiotCard->raw(),
                                        updateMask)) {
 
-    Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
+    // Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
     return true;
   } else {
     Serial.println(fbdo.errorReason());
