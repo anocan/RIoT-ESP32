@@ -96,13 +96,14 @@ bool RIoTSystem::littleSisterDoorController() {
   }
 
   String requestFromBigBrother = SerialPort.readStringUntil('|');
-  Serial.println(requestFromBigBrother);
+  // Serial.println(requestFromBigBrother);
   delay(5);
   if (requestFromBigBrother == RIoTSystem::getInstance().releaseCommandBackup) {
     digitalWrite(DOOR_PIN, LOW); // Actual release
     digitalWrite(READY_PIN, LOW);
     while (true) {
       requestFromBigBrother = SerialPort.readStringUntil('|');
+      Serial.println(requestFromBigBrother);
       delay(5);
       if (requestFromBigBrother ==
           RIoTSystem::getInstance().holdCommandBackup) {
