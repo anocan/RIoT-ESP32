@@ -83,8 +83,8 @@ void RIoTSystem::requestToLittleLister(const char *request) {
   if (RIoTSystem::getInstance().SYSTEM != SYS_NORMAL) {
     RIoTSystem::setSystemStatus(SYS_NORMAL);
     digitalWrite(READY_PIN, LOW);
-    RIoTSystem::getInstance().preferences.end();
-    ESP.restart();
+    // RIoTSystem::getInstance().preferences.end();
+    //  ESP.restart();
   }
 }
 
@@ -304,7 +304,7 @@ void RIoTSystem::bigBrotherDoorController(String tagUID) {
         break;
       }
     }
-    beep(700);
+    beep(buzzerWrongDuration);
 
     return;
   }
