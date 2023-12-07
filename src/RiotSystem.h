@@ -35,10 +35,10 @@ private:
     buzzerWrongDuration = 0.55 * 1000;  // in seconds
     buzzerCorrectDuration = 0.2 * 1000; // in seconds
 
-    maintenanceLowerHour = 05;
+    maintenanceLowerHour = 19;
     maintenanceLowerMinute = 00;
 
-    maintenanceUpperHour = 05;
+    maintenanceUpperHour = 20;
     maintenanceUpperMinute = 30;
 
     taskExecuted = false;
