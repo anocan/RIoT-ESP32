@@ -49,7 +49,7 @@ private:
     releaseCommand = "release";
     holdCommand = "hold";
     releaseCommandBackup = "releaseBackup";
-    holdCommandBackup = "commandBackup";
+    holdCommandBackup = "holdBackup";
     doorHoldDuration = 2 * 1000; // t seconds in milliseconds
   } // Private constructor prevents external instantiation
   RIoTSystem(const RIoTSystem &) = delete;
