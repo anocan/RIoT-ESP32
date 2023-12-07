@@ -253,6 +253,7 @@ void RIoTSystem::bigBrotherDoorController(String tagUID) {
     }
 
     case DOOR_UNLOCKED: {
+      SerialPort.print(releaseCommand);
       Serial.println("RIoT door is already unlocked.");
       break;
     }
