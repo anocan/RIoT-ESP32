@@ -88,13 +88,13 @@ void RIoTSystem::requestToLittleLister(const char *request) {
 }
 
 bool RIoTSystem::littleSisterDoorController() {
-  if (Serial.available()) {
+  if (SerialPort.available()) {
     // Serial.println(Sucessfull serial connection.);
   } else {
     // Serial.println("unsuccess");
     return false;
   }
-  String requestFromBigBrother = Serial.readStringUntil('|');
+  String requestFromBigBrother = SerialPort.readStringUntil('|');
   delay(5);
   if (WiFi.status() == WL_CONNECTED && Firebase.ready()) {
 
@@ -111,7 +111,7 @@ bool RIoTSystem::littleSisterDoorController() {
         digitalWrite(DOOR_PIN, LOW); // Actual release
         digitalWrite(READY_PIN, LOW);
         while (true) {
-          requestFromBigBrother = Serial.readStringUntil('|');
+          requestFromBigBrother = SerialPort.readStringUntil('|');
           delay(5);
           if (requestFromBigBrother == RIoTSystem::getInstance().holdCommand) {
             digitalWrite(DOOR_PIN, HIGH);
@@ -146,7 +146,7 @@ bool RIoTSystem::littleSisterDoorController() {
         digitalWrite(FIREBASE_PIN, LOW);
         digitalWrite(READY_PIN, LOW);
         while (true) {
-          requestFromBigBrother = Serial.readStringUntil('|');
+          requestFromBigBrother = SerialPort.readStringUntil('|');
           if (!strcmp(requestFromBigBrother.c_str(),
                       RIoTSystem::getInstance().holdCommand)) {
             digitalWrite(DOOR_PIN, HIGH);
@@ -175,7 +175,7 @@ bool RIoTSystem::littleSisterDoorController() {
       digitalWrite(DOOR_PIN, LOW); // Actual release
       digitalWrite(READY_PIN, LOW);
       while (true) {
-        requestFromBigBrother = Serial.readStringUntil('|');
+        requestFromBigBrother = SerialPort.readStringUntil('|');
         delay(5);
         if (requestFromBigBrother == RIoTSystem::getInstance().holdCommand) {
           digitalWrite(DOOR_PIN, HIGH);
