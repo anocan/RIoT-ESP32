@@ -255,6 +255,8 @@ bool uploadAllFirestoreTasks(FirebaseJson *jsonObjectRiotCard,
                              const char *riotCardID) {
   String userID =
       getDataFromJsonObject(jsonObjectRiotCard, "fields/id/stringValue");
+  String inOrOut =
+      getDataFromJsonObject(jsonObjectRiotCard, "fields/inOrOut/stringValue");
   char riotCardPath[64];
   strcpy(riotCardPath, "riotCards/");
   strcat(riotCardPath, riotCardID);
@@ -264,18 +266,49 @@ bool uploadAllFirestoreTasks(FirebaseJson *jsonObjectRiotCard,
   char userIDPath[64];
   strcpy(userIDPath, "users/");
   strcat(userIDPath, userID.c_str());
+  const char *pathLabMetaData = "labData/lab-metadata";
   FirebaseJson jsonObjectUser;
+  FirebaseJson jsonLabMetaData;
+  String updateStatus;
   if (firestoreGetJson(&jsonObjectUser, userIDPath)) {
 
   } else {
     return false;
   }
+  if (firestoreGetJson(&jsonLabMetaData, pathLabMetaData)) {
+
+  } else {
+    return false;
+  }
+  FirebaseJson jsonLabData;
+  String labPeople;
+  updateStatus = getDataFromJsonObject(&jsonLabMetaData,
+                                       "fields/updateStatus/stringValue");
 
   firestoreUpdateField(&jsonObjectUser, userIDPath,
                        "fields/riotCard/mapValue/fields/inOrOut/stringValue",
                        "out");
 
-  updateNumberOfPeople();
+  if (updateStatus == "outOfDate") {
+    updateNumberOfPeople();
+    jsonLabMetaData.set("fields/updateStatus/stringValue", "updated");
+    firestoreUpdateField(&jsonLabMetaData, "labData/lab-metadata",
+                         "fields/updateStatus/stringValue", "updated");
+  } else if (inOrOut == "in") {
+    if (firestoreGetJson(&jsonLabData, "labData/lab-data")) {
+
+    } else {
+      return false;
+    }
+    labPeople =
+        getDataFromJsonObject(&jsonLabData, "fields/labPeople/stringValue");
+    int intLabPeople = labPeople.toInt();
+    intLabPeople--;
+
+    firestoreUpdateField(&jsonLabData, "labData/lab-data",
+                         "fields/labPeople/stringValue",
+                         String(intLabPeople).c_str());
+  }
 
   return true;
 }
