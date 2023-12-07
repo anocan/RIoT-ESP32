@@ -294,11 +294,11 @@ void RIoTSystem::bigBrotherDoorController(String tagUID) {
         digitalWrite(NETWORK_PIN, LOW);
         digitalWrite(FIREBASE_PIN, LOW);
         beep(buzzerCorrectDuration);
-        requestToLittleLister(releaseCommand);
+        requestToLittleLister(releaseCommandBackup);
         while (millis() - doorHoldStartTime <= doorHoldDuration) {
           Serial.println("waiting to lock...");
         }
-        requestToLittleLister(holdCommand);
+        requestToLittleLister(holdCommandBackup);
         digitalWrite(READY_PIN, HIGH);
         Serial.println("CARD READ VIA BACKUP");
         break;
