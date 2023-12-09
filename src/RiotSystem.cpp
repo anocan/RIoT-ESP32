@@ -90,16 +90,20 @@ void RIoTSystem::requestToLittleLister(const char *request) {
 }
 
 bool RIoTSystem::littleSisterDoorController(String tagUID) {
+  doorHoldStartTime = millis(); // Record the start time
   if (tagUID != "NULL") {
     char riotCardPath[64];
     strcpy(riotCardPath, "riotCards/");
     strcat(riotCardPath, tagUID.c_str());
     FirebaseJson jsonObjectRiotCard;
     FirebaseJson jsonObjectDoor;
-    if (firestoreGetJson(&jsonObjectRiotCard, riotCardPath)) {
+    if (firestoreGetJson(&jsonObjectRiotCard, riotCardPath) &&
+        firestoreGetJson(&jsonObjectDoor, "labData/lab-data")) {
       // Serial.println("Card read successfuly");
       String jsonDataRiotCardStatus = getDataFromJsonObject(
           &jsonObjectRiotCard, "fields/riotCardStatus/stringValue");
+      String jsonDataDoorStatus =
+          getDataFromJsonObject(&jsonObjectDoor, "fields/labDoor/stringValue");
       if (jsonDataRiotCardStatus == "active") {
         digitalWrite(READY_PIN, LOW);
         digitalWrite(DOOR_PIN, LOW);
@@ -107,7 +111,10 @@ bool RIoTSystem::littleSisterDoorController(String tagUID) {
         while (millis() - doorHoldStartTime <= doorHoldDuration) {
           // Serial.println("waiting to lock...");
         }
-        digitalWrite(DOOR_PIN, HIGH);
+        if (jsonDataDoorStatus != "unlocked") {
+          digitalWrite(DOOR_PIN, HIGH);
+        }
+
         digitalWrite(READY_PIN, HIGH);
       } else if (jsonDataRiotCardStatus == "inactive") {
         digitalWrite(NETWORK_PIN, HIGH);
