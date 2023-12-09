@@ -138,7 +138,7 @@ public:
    * @return None.
    *
    */
-  void bigBrotherDoorController(String tagUID);
+  bool bigBrotherDoorController(String tagUID);
 
   /**
    *

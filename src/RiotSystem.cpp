@@ -41,7 +41,7 @@ void RIoTSystem::setUpPins() {
                    TX_PIN); // pins 16 rx2, 17 tx2, MONITOR_SPEED bps, 8 bits no
                             // parity 1 stop bit
   delay(1000);
-  attachInterrupt(INTERRUPT_PIN, ISR_function, RISING);
+  attachInterrupt(INTERRUPT_PIN, ISR_function, HIGH);
   pinMode(NETWORK_PIN, OUTPUT);
   pinMode(FIREBASE_PIN, OUTPUT);
   pinMode(READY_PIN, OUTPUT);
@@ -198,12 +198,12 @@ bool RIoTSystem::littleSisterDoorController() {
   return false;
 }
 
-void RIoTSystem::bigBrotherDoorController(String tagUID) {
+bool RIoTSystem::bigBrotherDoorController(String tagUID) {
   doorHoldStartTime = millis(); // Record the start time
   if (RIoTSystem::getInstance().SYSTEM == SYS_NORMAL) {
     if (tagUID == "NULL") {
       // Serial.println("No RFID read."); // do not uncomment this -spam
-      return;
+      return false;
     }
 
     char riotCardPath[64];
@@ -216,7 +216,7 @@ void RIoTSystem::bigBrotherDoorController(String tagUID) {
       // Serial.println("Card read successfuly")
     } else {
       beep(buzzerWrongDuration);
-      return;
+      return false;
     }
     firestoreGetJson(&jsonObjectDoor, "labData/lab-data");
 
@@ -287,10 +287,11 @@ void RIoTSystem::bigBrotherDoorController(String tagUID) {
       break;
     }
     }
+    return false;
   } else if (RIoTSystem::getInstance().SYSTEM == SYS_BACKUP) {
     if (tagUID == "NULL") {
       // Serial.println("No RFID read."); // do not uncomment this -spam
-      return;
+      return false;
     }
     const int numKnownTags = sizeof(knownTagUIDs) / sizeof(knownTagUIDs[0]);
     for (int i = 0; i < numKnownTags; i++) {
@@ -307,13 +308,15 @@ void RIoTSystem::bigBrotherDoorController(String tagUID) {
         requestToLittleLister(holdCommandBackup);
         digitalWrite(READY_PIN, HIGH);
         Serial.println("CARD READ VIA BACKUP");
+        return true;
         break;
       }
     }
     beep(buzzerWrongDuration);
 
-    return;
+    return false;
   }
+  return false;
 }
 
 bool RIoTSystem::systemMaintenance() {
