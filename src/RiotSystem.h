@@ -127,7 +127,7 @@ public:
    * @return Boolean value, indicates the success of the operation.
    *
    */
-  bool littleSisterDoorController();
+  bool littleSisterDoorController(String tagUID);
 
   /**
    *

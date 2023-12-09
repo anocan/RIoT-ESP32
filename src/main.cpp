@@ -18,6 +18,6 @@ void setup() {
 
 void loop() {
   // riotSystem.bigBrotherDoorController(riotRfid.readRFID());
-  riotSystem.littleSisterDoorController();
+  riotSystem.littleSisterDoorController(riotRfid.readRFID());
   riotSystem.systemMaintenance();
 }

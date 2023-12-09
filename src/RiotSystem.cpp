@@ -40,7 +40,7 @@ void RIoTSystem::setUpPins() {
   SerialPort.begin(COMM_SPEED, SERIAL_8N1, RX_PIN,
                    TX_PIN); // pins 16 rx2, 17 tx2, MONITOR_SPEED bps, 8 bits no
                             // parity 1 stop bit
-  attachInterrupt(INTERRUPT_PIN, ISR_function, RISING);
+  // attachInterrupt(INTERRUPT_PIN, ISR_function, RISING);
   pinMode(NETWORK_PIN, OUTPUT);
   pinMode(FIREBASE_PIN, OUTPUT);
   pinMode(READY_PIN, OUTPUT);
@@ -89,7 +89,58 @@ void RIoTSystem::requestToLittleLister(const char *request) {
   }
 }
 
-bool RIoTSystem::littleSisterDoorController() {
+bool RIoTSystem::littleSisterDoorController(String tagUID) {
+  if (tagUID != "NULL") {
+    char riotCardPath[64];
+    strcpy(riotCardPath, "riotCards/");
+    strcat(riotCardPath, tagUID.c_str());
+    FirebaseJson jsonObjectRiotCard;
+    FirebaseJson jsonObjectDoor;
+    if (firestoreGetJson(&jsonObjectRiotCard, riotCardPath)) {
+      // Serial.println("Card read successfuly");
+      String jsonDataRiotCardStatus = getDataFromJsonObject(
+          &jsonObjectRiotCard, "fields/riotCardStatus/stringValue");
+      if (jsonDataRiotCardStatus == "active") {
+        digitalWrite(READY_PIN, LOW);
+        digitalWrite(DOOR_PIN, LOW);
+        uploadAllFirestoreTasks(&jsonObjectRiotCard, tagUID.c_str());
+        while (millis() - doorHoldStartTime <= doorHoldDuration) {
+          // Serial.println("waiting to lock...");
+        }
+        digitalWrite(DOOR_PIN, HIGH);
+        digitalWrite(READY_PIN, HIGH);
+      } else if (jsonDataRiotCardStatus == "inactive") {
+        digitalWrite(NETWORK_PIN, HIGH);
+        delay(buzzerWrongDuration);
+        digitalWrite(NETWORK_PIN, LOW);
+
+        Serial.println("Card is inactive."); // DEBUG
+      } else if (jsonDataRiotCardStatus == "disabled") {
+        digitalWrite(FIREBASE_PIN, HIGH);
+        delay(buzzerWrongDuration);
+        digitalWrite(FIREBASE_PIN, LOW);
+        Serial.println("Card is disabled by the admin."); // DEBUG
+      }
+    } else {
+
+      if (!(digitalRead(FIREBASE_PIN) && digitalRead(NETWORK_PIN))) {
+        digitalWrite(NETWORK_PIN, HIGH);
+        digitalWrite(FIREBASE_PIN, HIGH);
+        delay(buzzerWrongDuration);
+        digitalWrite(NETWORK_PIN, LOW);
+        digitalWrite(FIREBASE_PIN, LOW);
+      } else {
+        digitalWrite(NETWORK_PIN, LOW);
+        digitalWrite(FIREBASE_PIN, LOW);
+        delay(buzzerWrongDuration);
+        digitalWrite(NETWORK_PIN, HIGH);
+        digitalWrite(FIREBASE_PIN, HIGH);
+      }
+
+      return false;
+    }
+  }
+
   if (SerialPort.available()) {
     // Serial.println(Sucessfull serial connection.);
   } else {
@@ -98,7 +149,7 @@ bool RIoTSystem::littleSisterDoorController() {
   }
 
   String requestFromBigBrother = SerialPort.readStringUntil('|');
-  // Serial.println(requestFromBigBrother);
+  Serial.println(requestFromBigBrother);
   delay(5);
   if (requestFromBigBrother == RIoTSystem::getInstance().releaseCommandBackup) {
     digitalWrite(DOOR_PIN, LOW); // Actual release
