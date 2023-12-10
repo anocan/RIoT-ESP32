@@ -171,7 +171,7 @@ bool RIoTSystem::littleSisterDoorController(String tagUID) {
       Serial.println(requestFromBigBrother);
       delay(5);
       if (requestFromBigBrother ==
-          RIoTSystem::getInstance().holdCommandBackup) {
+          RIoTSystem::getInstance().holdCommandBackupLS) {
         digitalWrite(DOOR_PIN, HIGH);
         digitalWrite(READY_PIN, HIGH);
         break;
@@ -196,7 +196,8 @@ bool RIoTSystem::littleSisterDoorController(String tagUID) {
         while (true) {
           requestFromBigBrother = SerialPort.readStringUntil('|');
           delay(5);
-          if (requestFromBigBrother == RIoTSystem::getInstance().holdCommand) {
+          if (requestFromBigBrother ==
+              RIoTSystem::getInstance().holdCommandLS) {
             digitalWrite(DOOR_PIN, HIGH);
             digitalWrite(READY_PIN, HIGH);
 
@@ -231,7 +232,8 @@ bool RIoTSystem::littleSisterDoorController(String tagUID) {
         digitalWrite(READY_PIN, LOW);
         while (true) {
           requestFromBigBrother = SerialPort.readStringUntil('|');
-          if (requestFromBigBrother == RIoTSystem::getInstance().holdCommand) {
+          if (requestFromBigBrother ==
+              RIoTSystem::getInstance().holdCommandLS) {
             digitalWrite(DOOR_PIN, HIGH);
             digitalWrite(NETWORK_PIN, HIGH);
             digitalWrite(FIREBASE_PIN, HIGH);
@@ -260,7 +262,7 @@ bool RIoTSystem::littleSisterDoorController(String tagUID) {
       while (true) {
         requestFromBigBrother = SerialPort.readStringUntil('|');
         delay(5);
-        if (requestFromBigBrother == RIoTSystem::getInstance().holdCommand) {
+        if (requestFromBigBrother == RIoTSystem::getInstance().holdCommandLS) {
           digitalWrite(DOOR_PIN, HIGH);
           digitalWrite(READY_PIN, HIGH);
           break;
