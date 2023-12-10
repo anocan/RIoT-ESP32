@@ -294,7 +294,8 @@ bool uploadAllFirestoreTasks(FirebaseJson *jsonObjectRiotCard,
     jsonLabMetaData.set("fields/updateStatus/stringValue", "updated");
     firestoreUpdateField(&jsonLabMetaData, "labData/lab-metadata",
                          "fields/updateStatus/stringValue", "updated");
-  } else if (inOrOut == "in") {
+
+  } else if (inOrOut == "out") { // inOrOut == "in" for littleSister
     if (firestoreGetJson(&jsonLabData, "labData/lab-data")) {
 
     } else {
@@ -303,7 +304,8 @@ bool uploadAllFirestoreTasks(FirebaseJson *jsonObjectRiotCard,
     labPeople =
         getDataFromJsonObject(&jsonLabData, "fields/labPeople/stringValue");
     int intLabPeople = labPeople.toInt();
-    intLabPeople--;
+    intLabPeople++; // comment for littleSister
+    // intLabPeople--; uncomment for littleSister
 
     firestoreUpdateField(&jsonLabData, "labData/lab-data",
                          "fields/labPeople/stringValue",
@@ -430,8 +432,8 @@ bool createLogDocument(tm *timeinfo) {
 
   sprintf(updateMask, "logID", formattedTime);
   jsonObject.set("fields/logID/integerValue", logID);
-  Serial.println(jsonObject.toString(Serial, true));
-  Serial.println(updateMask);
+  // Serial.println(jsonObject.toString(Serial, true));
+  // Serial.println(updateMask);
   if (Firebase.Firestore.patchDocument(&fbdo, FIREBASE_PROJECT_ID, "",
                                        documentPath, jsonObject.raw(),
                                        updateMask)) {

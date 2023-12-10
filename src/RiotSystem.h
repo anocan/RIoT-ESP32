@@ -46,10 +46,14 @@ private:
     startTimer = true;
     resetCounter = 0;
     resetThreshold = 5;
-    releaseCommand = "release";
-    holdCommand = "hold";
-    releaseCommandBackup = "releaseBackup";
-    holdCommandBackup = "holdBackup";
+    releaseCommandLS = "release";
+    holdCommandLS = "hold";
+    releaseCommandBackupLS = "releaseBackup";
+    holdCommandBackupLS = "holdBackup";
+    releaseCommandBB = "release|";
+    holdCommandBB = "hold|";
+    releaseCommandBackupBB = "releaseBackup|";
+    holdCommandBackupBB = "holdBackup|";
     doorHoldDuration = 4 * 1000; // t seconds in milliseconds
   } // Private constructor prevents external instantiation
   RIoTSystem(const RIoTSystem &) = delete;
@@ -70,10 +74,15 @@ public:
   static SYSTEM_STATUS SYSTEM;
   int doorHoldDuration;
   unsigned long doorHoldStartTime;
-  const char *releaseCommand;
-  const char *holdCommand;
-  const char *releaseCommandBackup;
-  const char *holdCommandBackup;
+  const char *releaseCommandBB;
+  const char *holdCommandBB;
+  const char *releaseCommandBackupBB;
+  const char *holdCommandBackupBB;
+
+  const char *releaseCommandLS;
+  const char *holdCommandLS;
+  const char *releaseCommandBackupLS;
+  const char *holdCommandBackupLS;
 
   DOOR_STATUS hashit(String string);
 
@@ -138,7 +147,7 @@ public:
    * @return None.
    *
    */
-  void bigBrotherDoorController(String tagUID);
+  bool bigBrotherDoorController(String tagUID);
 
   /**
    *

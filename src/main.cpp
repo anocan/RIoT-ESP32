@@ -17,7 +17,9 @@ void setup() {
 }
 
 void loop() {
-  // riotSystem.bigBrotherDoorController(riotRfid.readRFID());
-  riotSystem.littleSisterDoorController(riotRfid.readRFID());
-  riotSystem.systemMaintenance();
+  riotSystem.bigBrotherDoorController(
+      riotRfid.readRFID()); // comment for littleSister
+  riotSystem.littleSisterDoorController(
+      riotRfid.readRFID());       // comment for bigBrother
+  riotSystem.systemMaintenance(); //  comment for bigBrother
 }
